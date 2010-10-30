@@ -15,6 +15,7 @@
 #include "input.h"
 #include "command.h"
 
+#include <stdio.h>
 #include <string.h>
 
 int main(int argc, char **argv) {
@@ -26,9 +27,14 @@ int main(int argc, char **argv) {
             size_t line_sz = strlen(line);
             command_t *command = command_create(line, line_sz);
             yas_free(line);
-            
-            
-            command_destroy(command);
+            if (!command) {
+                // TODO: better error report interface
+                printf("syntax error.\n");
+            } else {
+                //command_inspect(command, 0);
+                
+                command_destroy(command);
+            }
         }
     }
     return 0;

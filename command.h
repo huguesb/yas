@@ -21,6 +21,7 @@ typedef struct _argument argument_t;
 
 command_t* command_create(const char *str, size_t sz);
 void command_destroy(command_t *command);
+void command_inspect(command_t *command, size_t indent);
 
 int command_argc(command_t *command);
 argument_t** command_argv(command_t *command);
@@ -30,9 +31,18 @@ int command_is_background(command_t *command);
 
 argument_t* argument_create(const char *str, size_t sz);
 void argument_destroy(argument_t *argument);
+void argument_inspect(argument_t *argument, size_t indent);
 
-int argument_is_command(argument_t *argument);
-command_t* argument_get_command(argument_t *argument);
+enum argument_type {
+    ARGTYPE_INVALID,
+    ARGTYPE_STRING,
+    ARGTYPE_COMMAND,
+    ARGTYPE_VARIABLE
+};
+
+int argument_type(argument_t *argument);
 char* argument_get_string(argument_t *argument);
+char* argument_get_variable(argument_t *argument);
+command_t* argument_get_command(argument_t *argument);
 
 #endif // _COMMAND_H_
