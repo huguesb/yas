@@ -14,6 +14,7 @@
 #include "memory.h"
 #include "input.h"
 #include "command.h"
+#include "exec.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -32,7 +33,7 @@ int main(int argc, char **argv) {
                 printf("syntax error.\n");
             } else {
                 //command_inspect(command, 0);
-                
+                exec_command(command);
                 command_destroy(command);
             }
         }

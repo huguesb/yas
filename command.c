@@ -37,6 +37,8 @@ void indent_printf(size_t indent, const char *fmt, ...) {
 
 struct _command {
     int flags;
+    char *in;
+    char *out;
     int argc;
     argument_t **argv;
 };
@@ -130,6 +132,8 @@ command_t* command_new() {
     command->flags = 0;
     command->argc = 0;
     command->argv = 0;
+    command->in = 0;
+    command->out = 0;
     return command;
 }
 
@@ -195,10 +199,17 @@ void command_inspect(command_t *command, size_t indent) {
         return;
     indent_printf(indent, "flags = %u\n", command->flags);
     indent_printf(indent, "args = {\n");
-    for (int i = 0; i < command->argc; ++i) {
+    for (int i = 0; i < command->argc; ++i)
         argument_inspect(command->argv[i], indent + 1);
-    }
     indent_printf(indent, "}\n");
+}
+
+char* command_redir_in(command_t *command) {
+    return command ? command->in : 0;
+}
+
+char* command_redir_out(command_t *command) {
+    return command ? command->out : 0;
 }
 
 int command_argc(command_t *command) {

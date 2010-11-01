@@ -26,6 +26,9 @@ void command_inspect(command_t *command, size_t indent);
 int command_argc(command_t *command);
 argument_t** command_argv(command_t *command);
 
+char* command_redir_in(command_t *command);
+char* command_redir_out(command_t *command);
+
 int command_is_pipechain(command_t *command);
 int command_is_background(command_t *command);
 
