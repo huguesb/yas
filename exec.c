@@ -53,33 +53,31 @@ char* eval_argument(argument_t *argument) {
             return 0;
         }
         pid_t pid = fork();
-	switch (pid) {
-	case -1:
-            printf("Unable to fork.\n");
-            return NULL;
-	case 0:
+        if (!pid) {
             dup2(fd[1], STDOUT_FILENO);
             close(fd[0]);
             close(fd[1]);
             exec_internal(argument_get_command(argument));
-	    // no possible return
-	default:
-            close(fd[1]);
-            waitpid(pid, NULL, 0);
-            size_t buffer_size = 0;
-            while (1) {
-                val = (char*)yas_realloc(val, buffer_size + 1024);
-                ssize_t n = read(fd[0], val, 1024);
-                buffer_size += n;
-                if (n < 1024)
-                    break;
-            }
-            if (buffer_size) {
-                val[buffer_size - 1] = 0;
-            } else {
-                yas_free(val);
-                val = 0;
-            }
+            // no possible return
+        } else if (pid == -1) {
+            fprintf(stderr, "Unable to fork.\n");
+            return NULL;
+        }
+        close(fd[1]);
+        waitpid(pid, NULL, 0);
+        size_t buffer_size = 0;
+        while (1) {
+            val = (char*)yas_realloc(val, buffer_size + 1024);
+            ssize_t n = read(fd[0], val, 1024);
+            buffer_size += n;
+            if (n < 1024)
+                break;
+        }
+        if (buffer_size) {
+            val[buffer_size - 1] = 0;
+        } else {
+            yas_free(val);
+            val = 0;
         }
     } else if (type == ARGTYPE_CAT) {
         string_t *s = string_new();

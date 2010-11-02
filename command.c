@@ -215,7 +215,6 @@ command_t* parse_command(parse_context_t *cxt) {
                     cmd->in = parse_argument(cxt);
                     if (cmd->in)
                         continue;
-                    
                 }
                 cxt->error = 1;
                 break;
