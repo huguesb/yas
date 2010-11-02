@@ -14,7 +14,9 @@
 #include "command.h"
 
 #include "memory.h"
+#include "dstring.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -29,18 +31,18 @@ void indent_printf(size_t indent, const char *fmt, ...) {
 
 /*
     Command grammar (external textual representation) :
-    command_line = command ( '|' command )*
-    command = argument+ ( '<' argument )? ( '>' argument )? '&'?
+    command_line = command ( ('|' | '&') command )*
+    command = argument+ ( '<' argument )? ( '>' argument )?
     argument = string | '$' '(' command ')' | '$' variable
     string = '"' ([^"] | '\' '"')* '"' | ([^"<>|&] | '\' ["<>|&])+
 */
 
 struct _command {
     int flags;
-    char *in;
-    char *out;
     int argc;
     argument_t **argv;
+    argument_t *in;
+    argument_t *out;
 };
 
 enum command_flags {
@@ -50,82 +52,14 @@ enum command_flags {
 
 struct _argument {
     int type;
+    size_t n;
     union {
         char *str;
         command_t *cmd;
+        argument_t **sub;
     } d;
 };
 
-static char* stripped(const char *src, size_t length) {
-    char *dst = yas_malloc((length + 1) * sizeof(char));
-    int idx = 0;
-    int quoted = 0, escaped = 0;
-    while (length && *src <= ' ') {
-        --length;
-        ++src;
-    }
-    while (length) {
-        if (*src == '\"' && !escaped) {
-            quoted = !quoted;
-        } else if (*src == '\\' && !escaped) {
-            escaped = 1;
-        } else {
-            escaped = 0;
-            dst[idx++] = *src;
-        }
-        --length;
-        ++src;
-    }
-    while (idx > 0 && dst[idx - 1] <= ' ')
-        --idx;
-    dst[idx] = 0;
-    return dst;
-}
-
-static size_t skip_ws(const char *str, size_t sz) {
-    size_t n = 0;
-    while (n < sz && str[n] <= ' ')
-        ++n;
-    return n;
-}
-
-static size_t find_next_argument(const char *str, size_t sz) {
-    size_t n = 0;
-    n += skip_ws(str, sz);
-    if (n < sz && str[n] == '|')
-        ++n;
-    if (n < sz)
-        n += skip_ws(str + n, sz - n);
-    return n;
-}
-
-static size_t find_argument_end(const char *str, size_t sz) {
-    size_t idx = 0;
-    int quoted = 0, escaped = 0;
-    while (idx < sz) {
-        char c = str[idx];
-        if (escaped) {
-            escaped = 0;
-        } else if (c == '\\') {
-            escaped = 1;
-        } else if (c == '\"') {
-            quoted = !quoted;
-        } else if (!quoted) {
-            if (c <= ' ' || c == '|' || c == ')') {
-                idx += skip_ws(str + idx, sz - idx);
-                return idx;
-            } else if (c == '$' && idx + 1 < sz && str[idx + 1] == '(') {
-                idx += 2;
-                do {
-                    idx += find_argument_end(str + idx, sz - idx);
-                    idx += find_next_argument(str + idx, sz - idx);
-                } while (idx < sz && str[idx] != ')');
-            }
-        }
-        ++idx;
-    }
-    return sz;
-}
 
 command_t* command_new() {
     command_t *command = (command_t*)yas_malloc(sizeof(command_t));
@@ -144,45 +78,242 @@ void command_add_argument(command_t *command, argument_t *argument) {
     ++command->argc;
 }
 
-void command_add_subcommand(command_t *command, command_t *subcommand) {
+command_t* command_add_subcommand(command_t *command, command_t *subcommand) {
+    if (!command)
+        return subcommand;
+    if (!(command->flags & COMMAND_IS_PIPECHAIN)) {
+        command_t *prev = command;
+        command = command_new();
+        command->flags = COMMAND_IS_PIPECHAIN;
+        command_add_subcommand(command, prev);
+    }
     argument_t *argument = (argument_t*)yas_malloc(sizeof(argument_t));
     argument->type = ARGTYPE_COMMAND;
     argument->d.cmd = subcommand;
     command_add_argument(command, argument);
+    return command;
 }
 
-command_t* command_create(const char *str, size_t sz) {
-    size_t idx = 0;
-    command_t *p = 0, *cmd = command_new();
-    idx += skip_ws(str, sz);
-    while (idx < sz) {
-//         printf("%u:%u : start = %u\n", p ? p->argc : 0, cmd->argc, idx);
-        size_t next = find_argument_end(str + idx, sz - idx);
-//         printf("%u:%u : sz = %u\n", p ? p->argc : 0, cmd->argc, next);
-        argument_t *arg = argument_create(str + idx, next);
-        if (!arg) {
-            command_destroy(cmd);
-            return 0;
-        }
-        command_add_argument(cmd, arg);
-        idx += next;
-        if (idx < sz && str[idx] == '|') {
-//             printf("adding subcommand\n");
-            if (!p) {
-                p = yas_malloc(sizeof(command_t));
-                p->flags = COMMAND_IS_PIPECHAIN;
-                p->argc = 0;
-                p->argv = 0;
-            }
-            command_add_subcommand(p, cmd);
-            cmd = command_new();
-        }
-        idx += find_next_argument(str + idx, sz - idx);
-//         printf("%u:%u : next = %u\n", p ? p->argc : 0, cmd->argc, idx);
+argument_t* argument_new() {
+    argument_t *argument = (argument_t*)yas_malloc(sizeof(argument_t));
+    argument->type = ARGTYPE_INVALID;
+    argument->n = 0;
+    argument->d.str = 0;
+    return argument;
+}
+
+argument_t* argument_add_sub(argument_t *parent, argument_t *child) {
+    if (!parent)
+        return child;
+    if ((parent->type & ARGTYPE_TYPE_MASK) != ARGTYPE_CAT) {
+        argument_t *tmp = parent;
+        parent = argument_new();
+        parent->type = ARGTYPE_CAT | (tmp->type & ARGTYPE_FLAGS_MASK);
+        parent->n = 1;
+        parent->d.sub = (argument_t**)yas_malloc(2 * sizeof(argument_t*));
+        parent->d.sub[0] = tmp;
+        parent->d.sub[1] = 0;
     }
-    if (p && cmd->argc)
-        command_add_subcommand(p, cmd);
-    return p ? p : cmd;
+    ++parent->n;
+    parent->d.sub = (argument_t**)yas_realloc(parent->d.sub,
+                                              (parent->n + 1) * sizeof(argument_t*));
+    parent->d.sub[parent->n - 1] = child;
+    parent->d.sub[parent->n] = 0;
+    return parent;
+}
+
+argument_t* argument_add_sub_from_string(argument_t *parent, string_t *s, int quoted) {
+    if (string_get_length(s)) {
+        argument_t *arg = argument_new();
+        arg->d.str = string_get_cstr_copy(s);
+        arg->type = ARGTYPE_STRING;
+        if (quoted)
+            arg->type |= ARGTYPE_QUOTED;
+        string_clear(s);
+        parent = argument_add_sub(parent, arg);
+    }
+    return parent;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef struct {
+    const char *data;
+    size_t length;
+    size_t position;
+    int error;
+} parse_context_t;
+
+int parser_at_end(parse_context_t *cxt) {
+    return cxt->position >= cxt->length;
+}
+
+char parser_char(parse_context_t *cxt) {
+    return cxt->data[cxt->position];
+}
+
+void parser_advance(parse_context_t *cxt, int n) {
+    if (n < 0 && cxt->position < (size_t)(-n))
+        cxt->position = 0;
+    else
+        cxt->position += n;
+}
+
+char parser_consume(parse_context_t *cxt) {
+    return cxt->data[cxt->position++];
+}
+
+void parser_skip_ws(parse_context_t *cxt) {
+    while (cxt->position < cxt->length && isspace(cxt->data[cxt->position]))
+        ++cxt->position;
+}
+
+command_t* parse_command_line(parse_context_t *cxt);
+command_t* parse_command(parse_context_t *cxt);
+argument_t* parse_argument(parse_context_t *cxt);
+
+command_t* parse_command_line(parse_context_t *cxt) {
+//     printf("parse_command_line : %i/%i\n", cxt->position, cxt->length);
+    command_t *p = 0;
+    while (!parser_at_end(cxt)) {
+        command_t *cmd = parse_command(cxt);
+        if (!cmd)
+            break;
+        p = command_add_subcommand(p, cmd);
+    }
+    if (cxt->error && p) {
+        command_destroy(p);
+        p = 0;
+    }
+//     printf("=> %p\n", p);
+    return p;
+}
+
+command_t* parse_command(parse_context_t *cxt) {
+//     printf("parse_command : %i/%i\n", cxt->position, cxt->length);
+    command_t *cmd = 0;
+    while (!parser_at_end(cxt)) {
+        argument_t *arg = parse_argument(cxt);
+        if (!arg)
+            break;
+        else if (!cmd)
+            cmd = command_new();
+        command_add_argument(cmd, arg);
+        char c = parser_char(cxt);
+        if (c == '|' || c == '&') {
+            parser_advance(cxt, 1);
+            if (c == '&')
+                cmd->flags |= COMMAND_IS_BACKGROUND;
+            break;
+        } else if (c == ')') {
+            break;
+        } else if (c == '<') {
+            if (!cmd->in) {
+                cmd->in = parse_argument(cxt);
+            } else {
+                cxt->error = 1;
+                break;
+            }
+        } else if (c == '>') {
+            if (!cmd->out) {
+                cmd->out = parse_argument(cxt);
+            } else {
+                cxt->error = 1;
+                break;
+            }
+        }
+    }
+    if (cxt->error && cmd) {
+        command_destroy(cmd);
+        cmd = 0;
+    }
+//     printf("=> %p\n", cmd);
+    return cmd;
+}
+
+argument_t* parse_argument(parse_context_t *cxt) {
+//     printf("parse_argument : %i/%i\n", cxt->position, cxt->length);
+    string_t *tmp = string_new();
+    argument_t *p = 0;
+    parser_skip_ws(cxt);
+    int quoted = 0;
+    while (!parser_at_end(cxt)) {
+        char c = parser_char(cxt);
+        if (c == '\\') {
+            parser_advance(cxt, 1);
+            string_append_char(tmp, parser_consume(cxt));
+        } else if (c == '\"') {
+            p = argument_add_sub_from_string(p, tmp, quoted);
+            quoted = !quoted;
+            parser_advance(cxt, 1);
+        } else if (c == '$') {
+            p = argument_add_sub_from_string(p, tmp, quoted);
+            parser_advance(cxt, 1);
+            c = parser_char(cxt);
+            if (c == '(') {
+                // command substitution
+                parser_advance(cxt, 1);
+                command_t *sub = parse_command_line(cxt);
+                if (!sub) {
+                    break;
+                }
+                argument_t *arg = argument_new();
+                arg->type = ARGTYPE_COMMAND;
+                arg->d.cmd = sub;
+                if (quoted)
+                    arg->type |= ARGTYPE_QUOTED;
+                p = argument_add_sub(p, arg);
+                if (parser_char(cxt) == ')') {
+                    parser_advance(cxt, 1);
+                } else {
+                    // TODO: report syntax error
+                    cxt->error = 1;
+                }
+            } else if (isalnum(c) || (c == '_')) {
+                // variable
+                while (!parser_at_end(cxt) && (isalnum(c) || (c == '_'))) {
+                    string_append_char(tmp, c);
+                    parser_advance(cxt, 1);
+                    c = parser_char(cxt);
+                }
+                argument_t *arg = argument_new();
+                arg->type = ARGTYPE_VARIABLE;
+                arg->d.str = string_get_cstr_copy(tmp);
+                string_clear(tmp);
+                if (quoted)
+                    arg->type |= ARGTYPE_QUOTED;
+                p = argument_add_sub(p, arg);
+            } else {
+                // TODO: report syntax error
+                cxt->error = 1;
+            }
+        } else if (!quoted && (c <= ' ' || c == '|' || c == '<' || c == '>' || c == '&' || c == ')')) {
+            parser_skip_ws(cxt);
+            break;
+        } else {
+            string_append_char(tmp, parser_consume(cxt));
+        }
+    }
+    if (cxt->error && p) {
+        argument_destroy(p);
+        p = 0;
+    } else {
+        p = argument_add_sub_from_string(p, tmp, quoted);
+    }
+    string_destroy(tmp);
+//     printf("=> %p\n", p);
+    return p;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+command_t* command_create(const char *str, size_t sz) {
+    parse_context_t cxt;
+    cxt.data = str;
+    cxt.length = sz;
+    cxt.position = 0;
+    cxt.error = 0;
+    return parse_command_line(&cxt);
 }
 
 void command_destroy(command_t *command) {
@@ -201,14 +332,23 @@ void command_inspect(command_t *command, size_t indent) {
     indent_printf(indent, "args = {\n");
     for (int i = 0; i < command->argc; ++i)
         argument_inspect(command->argv[i], indent + 1);
+    
+    if (command->in) {
+        indent_printf(indent, "<\n");
+        argument_inspect(command->in, indent + 1);
+    }
+    if (command->out) {
+        indent_printf(indent, ">\n");
+        argument_inspect(command->out, indent + 1);
+    }
     indent_printf(indent, "}\n");
 }
 
-char* command_redir_in(command_t *command) {
+argument_t* command_redir_in(command_t *command) {
     return command ? command->in : 0;
 }
 
-char* command_redir_out(command_t *command) {
+argument_t* command_redir_out(command_t *command) {
     return command ? command->out : 0;
 }
 
@@ -228,72 +368,79 @@ int command_is_background(command_t *command) {
     return command ? command->flags & COMMAND_IS_BACKGROUND : 0;
 }
 
-argument_t* argument_create(const char *str, size_t sz) {
-    if (sz <= 0)
-        return 0;
-    
-    while (sz > 0 && str[sz - 1] <= ' ')
-        --sz;
-    
-    argument_t *argument = (argument_t*)yas_malloc(sizeof(argument_t));
-    argument->type = ARGTYPE_STRING;
-    argument->d.str = 0;
-    
-    if (str[0] == '$') {
-        if (sz > 1 && str[1] == '(') {
-            if (str[sz - 1] != ')') {
-                yas_free(argument);
-                return 0;
-            }
-            argument->type = ARGTYPE_COMMAND;
-            argument->d.cmd = command_create(str + 2, sz - 3);
-        } else {
-            argument->type = ARGTYPE_VARIABLE;
-            argument->d.str = stripped(str + 1, sz - 1);
-        }
-    } else {
-        argument->d.str = stripped(str, sz);
-    }
-    
-    return argument;
-}
-
 void argument_destroy(argument_t *argument) {
+    int type = argument->type & ARGTYPE_TYPE_MASK;
+    if (type == ARGTYPE_COMMAND) {
+        command_destroy(argument->d.cmd);
+    } else if (type == ARGTYPE_CAT) {
+        argument_t **l = argument->d.sub;
+        while (l && *l)
+            argument_destroy(*(l++));
+        yas_free(argument->d.sub);
+    } else if (type == ARGTYPE_STRING || type == ARGTYPE_VARIABLE) {
+        yas_free(argument->d.str);
+    }
     yas_free(argument);
 }
 
 void argument_inspect(argument_t *argument, size_t indent) {
     if (!argument)
         return;
-    switch (argument->type) {
+    switch (argument->type & ARGTYPE_TYPE_MASK) {
         case ARGTYPE_STRING:
-            indent_printf(indent, "STRING = \"%s\"\n", argument->d.str);
+            indent_printf(indent,
+                          "%cSTRING = \"%s\"\n",
+                          argument->type & ARGTYPE_QUOTED ? '*' : ' ',
+                          argument->d.str);
             break;
         case ARGTYPE_COMMAND:
-            indent_printf(indent, "COMMAND = {\n");
+            indent_printf(indent,
+                          "%cCOMMAND = {\n",
+                          argument->type & ARGTYPE_QUOTED ? '*' : ' ');
             command_inspect(argument->d.cmd, indent + 1);
             indent_printf(indent, "}\n");
             break;
         case ARGTYPE_VARIABLE:
-            indent_printf(indent, "VARIABLE = \"%s\"\n", argument->d.str);
+            indent_printf(indent, "%cVARIABLE = \"%s\"\n",
+                          argument->type & ARGTYPE_QUOTED ? '*' : ' ',
+                          argument->d.str);
             break;
+        case ARGTYPE_CAT:
+        {
+            indent_printf(indent, "%cCAT = {\n",
+                          argument->type & ARGTYPE_QUOTED ? '*' : ' ');
+            argument_t **l = argument->d.sub;
+            while (l && *l)
+                argument_inspect(*(l++), indent + 1);
+            indent_printf(indent, "}\n");
+            break;
+        }
         default:
+            indent_printf(indent, "??? [%p : %x]\n", argument, argument->type);
             break;
     }
 }
 
 int argument_type(argument_t *argument) {
-    return argument ? argument->type : ARGTYPE_INVALID;
+    return argument ? argument->type & ARGTYPE_TYPE_MASK : ARGTYPE_INVALID;
+}
+
+int argument_flags(argument_t *argument) {
+    return argument ? argument->type & ARGTYPE_FLAGS_MASK : 0;
 }
 
 char* argument_get_string(argument_t *argument) {
-    return argument && argument->type == ARGTYPE_STRING ? argument->d.str : 0;
+    return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_STRING ? argument->d.str : 0;
 }
 
 char* argument_get_variable(argument_t *argument) {
-    return argument && argument->type == ARGTYPE_VARIABLE ? argument->d.str : 0;
+    return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_VARIABLE ? argument->d.str : 0;
 }
 
 command_t* argument_get_command(argument_t *argument) {
-    return argument && argument->type == ARGTYPE_COMMAND ? argument->d.cmd : 0;
+    return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_COMMAND ? argument->d.cmd : 0;
+}
+
+argument_t** argument_get_arguments(argument_t *argument) {
+    return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_CAT ? argument->d.sub : 0;
 }

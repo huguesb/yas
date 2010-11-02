@@ -26,26 +26,31 @@ void command_inspect(command_t *command, size_t indent);
 int command_argc(command_t *command);
 argument_t** command_argv(command_t *command);
 
-char* command_redir_in(command_t *command);
-char* command_redir_out(command_t *command);
+argument_t* command_redir_in(command_t *command);
+argument_t* command_redir_out(command_t *command);
 
 int command_is_pipechain(command_t *command);
 int command_is_background(command_t *command);
-
-argument_t* argument_create(const char *str, size_t sz);
-void argument_destroy(argument_t *argument);
-void argument_inspect(argument_t *argument, size_t indent);
 
 enum argument_type {
     ARGTYPE_INVALID,
     ARGTYPE_STRING,
     ARGTYPE_COMMAND,
-    ARGTYPE_VARIABLE
+    ARGTYPE_VARIABLE,
+    ARGTYPE_CAT,
+    ARGTYPE_TYPE_MASK = 0x0FFF,
+    ARGTYPE_FLAGS_MASK = 0xF000,
+    ARGTYPE_QUOTED = 0x8000
 };
 
+void argument_destroy(argument_t *argument);
+void argument_inspect(argument_t *argument, size_t indent);
+
 int argument_type(argument_t *argument);
+int argument_flags(argument_t *argument);
 char* argument_get_string(argument_t *argument);
 char* argument_get_variable(argument_t *argument);
 command_t* argument_get_command(argument_t *argument);
+argument_t** argument_get_arguments(argument_t *argument);
 
 #endif // _COMMAND_H_
