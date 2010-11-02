@@ -53,8 +53,17 @@ char* eval_argument(argument_t *argument) {
             return 0;
         }
         pid_t pid = fork();
-        
-        if (pid) {
+	switch (pid) {
+	case -1:
+            printf("Unable to fork.\n");
+            return NULL;
+	case 0:
+            dup2(fd[1], STDOUT_FILENO);
+            close(fd[0]);
+            close(fd[1]);
+            exec_internal(argument_get_command(argument));
+	    // no possible return
+	default:
             close(fd[1]);
             waitpid(pid, NULL, 0);
             size_t buffer_size = 0;
@@ -71,11 +80,6 @@ char* eval_argument(argument_t *argument) {
                 yas_free(val);
                 val = 0;
             }
-        } else {
-            dup2(fd[1], STDOUT_FILENO);
-            close(fd[0]);
-            close(fd[1]);
-            exec_internal(argument_get_command(argument));
         }
     } else if (type == ARGTYPE_CAT) {
         string_t *s = string_new();
