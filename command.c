@@ -199,29 +199,41 @@ command_t* parse_command(parse_context_t *cxt) {
         else if (!cmd)
             cmd = command_new();
         command_add_argument(cmd, arg);
-        char c = parser_char(cxt);
-        if (c == '|' || c == '&') {
-            parser_advance(cxt, 1);
-            if (c == '&')
-                cmd->flags |= COMMAND_IS_BACKGROUND;
-            break;
-        } else if (c == ')') {
-            break;
-        } else if (c == '<') {
-            if (!cmd->in) {
-                cmd->in = parse_argument(cxt);
-            } else {
+        int long_break = 1;
+        while (1) {
+            char c = parser_char(cxt);
+            if (c == '|' || c == '&') {
+                parser_advance(cxt, 1);
+                if (c == '&')
+                    cmd->flags |= COMMAND_IS_BACKGROUND;
+                break;
+            } else if (c == ')') {
+                break;
+            } else if (c == '<') {
+                if (!cmd->in) {
+                    parser_advance(cxt, 1);
+                    cmd->in = parse_argument(cxt);
+                    if (cmd->in)
+                        continue;
+                    
+                }
+                cxt->error = 1;
+                break;
+            } else if (c == '>') {
+                if (!cmd->out) {
+                    parser_advance(cxt, 1);
+                    cmd->out = parse_argument(cxt);
+                    if (cmd->out)
+                        continue;
+                }
                 cxt->error = 1;
                 break;
             }
-        } else if (c == '>') {
-            if (!cmd->out) {
-                cmd->out = parse_argument(cxt);
-            } else {
-                cxt->error = 1;
-                break;
-            }
+            long_break = 0;
+            break;
         }
+        if (long_break)
+            break;
     }
     if (cxt->error && cmd) {
         command_destroy(cmd);
