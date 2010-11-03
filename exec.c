@@ -24,10 +24,26 @@
 #include <string.h>
 #include <unistd.h>
 #include <glob.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+
+char* get_pwd() {
+    char *buffer = 0;
+    size_t size = 16;
+    do {
+        size *= 2;
+        buffer = (char*)yas_realloc(buffer, size * sizeof(char));
+        getcwd(buffer, size);
+    } while (errno == ERANGE);
+    if (errno) {
+        yas_free(buffer);
+        buffer = 0;
+    }
+    return buffer;
+}
 
 void exec_internal(command_t *command);
 
@@ -120,6 +136,11 @@ argv_t* argv_new() {
     return argv;
 }
 
+void argv_destroy(argv_t *argv) {
+    yas_free(argv->d);
+    yas_free(argv);
+}
+
 void argv_add(argv_t *argv, const char *s) {
 //     fprintf(stderr, "=> %s\n", s);
     argv_grow(argv, 1);
@@ -164,57 +185,84 @@ void argv_inspect(argv_t *argv) {
         fprintf(stderr, "%s\n", argv->d[i]);
 }
 
-void exec_internal(command_t *command) {
+int argv_eval(argv_t *argv, command_t *command) {
     const size_t n = command_argc(command);
     argument_t **d = command_argv(command);
-    argv_t *argv = argv_new();
-    size_t i;
-    for (i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         char *s = eval_argument(d[i]);
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
             argument_inspect(d[i], 0);
-            exit(1);
+            return 1;
         }
-        if (argument_flags(d[i]) & ARGTYPE_QUOTED) {
+        if (argument_flags(d[i]) & ARGTYPE_QUOTED)
             argv_add(argv, s);
-        } else {
+        else
             argv_add_split(argv, s);
-        }
     }
-    
+    return 0;
+}
+
+int exec_setup_redir(command_t *command) {
     if (command_redir_in(command)) {
         char *s = eval_argument(command_redir_in(command));
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
             argument_inspect(command_redir_in(command), 0);
-            exit(1);
+            return 1;
         }
         int fd = open(s, O_RDONLY);
         if (fd == -1) {
             fprintf(stderr, "Unable to read from %s.\n", s);
-            exit(1);
+            return 1;
         }
         dup2(fd, STDIN_FILENO);
         close(fd);
     }
-    
     if (command_redir_out(command)) {
         char *s = eval_argument(command_redir_out(command));
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
             argument_inspect(command_redir_out(command), 0);
-            exit(1);
+            return 1;
         }
         int fd = open(s, O_WRONLY | O_CREAT);
         if (fd == -1) {
             fprintf(stderr, "Unable to write into %s.\n", s);
-            exit(1);
+            return 1;
         }
         dup2(fd, STDOUT_FILENO);
         close(fd);
     }
-    
+    return 0;
+}
+
+int exec_builtin(argv_t *argv) {
+    // try builtin commands
+    if (!strcmp(argv->d[0], "cd")) {
+        if (argv->n) {
+            if (chdir(argv->d[1]))
+                fprintf(stderr, "No such directory : %s\n", argv->d[1]);
+        } else {
+            // TODO : find home dir
+            chdir("");
+        }
+        return 0;
+    } else if (!strcmp(argv->d[0], "exit")) {
+        exit(0);
+    }
+    return 1;
+}
+
+void exec_internal(command_t *command) {
+    argv_t *argv = argv_new();
+    if (argv_eval(argv, command))
+        exit(1);
+    if (exec_setup_redir(command))
+        exit(1);
+    if (!exec_builtin(argv))
+        exit(0);
+    // exec external command
     int errcode = execvp(argv->d[0], argv->d);
     fprintf(stderr, "Command not found: %s\n", argv->d[0]);
     exit(errcode);
@@ -262,15 +310,29 @@ void exec_command(command_t *command) {
     if (command_is_pipechain(command)) {
         exec_pipechain(command);
     } else {
-        pid_t pid = fork();
-        if (pid) {
-            if (command_is_background(command)) {
-                
-            } else {
-                waitpid(pid, NULL, 0);
-            }
+        argv_t *argv = argv_new();
+        if (argv_eval(argv, command)) {
+            argv_destroy(argv);
+            return;
+        }
+        if (!exec_builtin(argv)) {
+            argv_destroy(argv);
         } else {
-            exec_internal(command);
+            pid_t pid = fork();
+            if (pid) {
+                argv_destroy(argv);
+                if (command_is_background(command)) {
+                    
+                } else {
+                    waitpid(pid, NULL, 0);
+                }
+            } else {
+                if (exec_setup_redir(command))
+                    exit(1);
+                int errcode = execvp(argv->d[0], argv->d);
+                fprintf(stderr, "Command not found: %s\n", argv->d[0]);
+                exit(errcode);
+            }
         }
     }
 }
