@@ -30,6 +30,8 @@ void task_set_pid(task_t *task, pid_t pid);
 argv_t* task_get_argv(task_t *task);
 void task_set_argv(task_t *task, argv_t *argv);
 
+void task_inspect(task_t *task);
+
 typedef struct _task_list task_list_t;
 
 task_list_t* task_list_new();

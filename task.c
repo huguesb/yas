@@ -15,6 +15,8 @@
 
 #include "memory.h"
 
+#include <stdio.h>
+
 struct _task {
     pid_t pid;
     argv_t *argv;
@@ -52,6 +54,17 @@ void task_set_argv(task_t *task, argv_t *argv) {
         task->argv = argv;
 }
 
+void task_inspect(task_t *task) {
+    if (!task)
+        return;
+    fprintf(stdout, "%u :", task->pid);
+    size_t n = argv_get_argc(task->argv);
+    char **d = argv_get_argv(task->argv);
+    for (size_t i = 0; i < n; ++i)
+        fprintf(stdout, " %s", d[i]);
+    fputc('\n', stdout);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 struct _task_list {
@@ -59,6 +72,13 @@ struct _task_list {
     size_t a;
     task_t **d;
 };
+
+static void task_list_grow(task_list_t *list, size_t n) {
+    if (list->a - list->n >= n)
+        return;
+    list->a = list->a ? 2 * list->a : 16;
+    list->d = (task_t**)yas_realloc(list->d, list->a * sizeof(task_t*));
+}
 
 task_list_t* task_list_new() {
     task_list_t *list = (task_list_t*)yas_malloc(sizeof(task_list_t));
@@ -86,9 +106,10 @@ task_t* task_list_get_task(task_list_t *list, size_t index) {
 }
 
 void task_list_add(task_list_t *list, task_t *task) {
-
+    task_list_grow(list, 1);
+    list->d[list->n++] = task;
 }
 
 void task_list_remove(task_list_t *list, task_t *task) {
-
+    
 }

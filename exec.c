@@ -197,6 +197,11 @@ int exec_builtin(argv_t *argv, exec_context_t *cxt) {
         return 0;
     } else if (!strcmp(*d, "exit")) {
         exit(0);
+    } else if (!strcmp(*d, "list_tasks")) {
+        size_t n = task_list_get_size(cxt->tasklist);
+        for (size_t i = 0; i < n; ++i)
+            task_inspect(task_list_get_task(cxt->tasklist, i));
+        return 0;
     }
     return 1;
 }
@@ -274,7 +279,7 @@ void exec_command(command_t *command, task_list_t *tasklist) {
                     task_t *task = task_new();
                     task_set_pid(task, pid);
                     task_set_argv(task, argv);
-                    task_list_add(tasklist, task);
+                    task_list_add(cxt.tasklist, task);
                 } else {
                     argv_destroy(argv);
                     waitpid(pid, NULL, 0);
