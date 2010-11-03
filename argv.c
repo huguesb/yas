@@ -59,7 +59,6 @@ char** argv_get_argv(argv_t *argv) {
 }
 
 int argv_add(argv_t *argv, const char *s) {
-//     fprintf(stderr, "=> %s\n", s);
     argv_grow(argv, 1);
     argv->d[argv->n] = (char*)yas_malloc((strlen(s)+1) * sizeof(char));
     strcpy(argv->d[argv->n], s);
@@ -68,8 +67,7 @@ int argv_add(argv_t *argv, const char *s) {
 }
 
 int argv_add_split(argv_t *argv, const char *s) {
-    // space split & glob expansion
-//     fprintf(stderr, "expanding %s\n", s);
+    /* field splitting & glob expansion */
     const char *last = s, *current = s;
     do {
         if (isspace(*current) || !*current) {
@@ -87,8 +85,8 @@ int argv_add_split(argv_t *argv, const char *s) {
                     fprintf(stderr, "%s\n", tmp);
                     return 1;
                 }
-//                 fprintf(stderr, "expanded %s into %u parts\n", tmp, globs.gl_pathc);
-                for (size_t j = 0; j < globs.gl_pathc; ++j)
+                size_t j;
+                for (j = 0; j < globs.gl_pathc; ++j)
                     argv_add(argv, globs.gl_pathv[j]);
                 globfree(&globs);
                 yas_free(tmp);
@@ -100,6 +98,7 @@ int argv_add_split(argv_t *argv, const char *s) {
 }
 
 void argv_inspect(argv_t *argv) {
-    for (size_t i = 0; i < argv->n; ++i)
+    size_t i;
+    for (i = 0; i < argv->n; ++i)
         fprintf(stderr, "%s\n", argv->d[i]);
 }

@@ -23,7 +23,8 @@
 void indent_printf(size_t indent, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    for (size_t i = 0; i < indent; ++i)
+    size_t i;
+    for (i = 0; i < indent; ++i)
         fputc(' ', stdout);
     vprintf(fmt, va);
     va_end(va);
@@ -39,7 +40,7 @@ void indent_printf(size_t indent, const char *fmt, ...) {
 
 struct _command {
     int flags;
-    int argc;
+    size_t argc;
     argument_t **argv;
     argument_t *in;
     argument_t *out;
@@ -135,7 +136,7 @@ argument_t* argument_add_sub_from_string(argument_t *parent, string_t *s, int qu
     return parent;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/******************************************************************************/
 
 typedef struct {
     const char *data;
@@ -173,7 +174,7 @@ command_t* parse_command_line(parse_context_t *cxt);
 command_t* parse_command(parse_context_t *cxt);
 argument_t* parse_argument(parse_context_t *cxt);
 
-//#define YAS_DEBUG_PARSE
+/* #define YAS_DEBUG_PARSE */
 
 #ifdef YAS_DEBUG_PARSE
 #define dprintf(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
@@ -277,7 +278,6 @@ argument_t* parse_argument(parse_context_t *cxt) {
                 cxt->substitution = 1;
             }
             if (is_sub) {
-                // command substitution
                 parser_advance(cxt, 1);
                 command_t *sub = parse_command_line(cxt);
                 if (!sub) {
@@ -295,12 +295,11 @@ argument_t* parse_argument(parse_context_t *cxt) {
                     if (c == '`')
                         cxt->substitution = 0;
                 } else {
-                    // TODO: report syntax error
+                    /* TODO: report syntax error */
                     fprintf(stderr, "%c != %c\n", c, pc);
                     cxt->error = 1;
                 }
             } else if (isalnum(c) || (c == '_')) {
-                // variable
                 while (!parser_at_end(cxt) && (isalnum(c) || (c == '_'))) {
                     string_append_char(tmp, c);
                     parser_advance(cxt, 1);
@@ -314,7 +313,7 @@ argument_t* parse_argument(parse_context_t *cxt) {
                     arg->type |= ARGTYPE_QUOTED;
                 p = argument_add_sub(p, arg);
             } else {
-                // TODO: report syntax error
+                /* TODO: report syntax error */
                 cxt->error = 1;
             }
         } else if (!quoted && (c <= ' ' || c == '|' || c == '<' || c == '>' || c == '&' || c == ')' || c == '`')) {
@@ -335,7 +334,7 @@ argument_t* parse_argument(parse_context_t *cxt) {
     return p;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/******************************************************************************/
 
 command_t* command_create(const char *str, size_t sz) {
     parse_context_t cxt;
@@ -354,7 +353,8 @@ command_t* command_create(const char *str, size_t sz) {
 void command_destroy(command_t *command) {
     if (!command)
         return;
-    for (int i = 0; i < command->argc; ++i)
+    size_t i;
+    for (i = 0; i < command->argc; ++i)
         argument_destroy(command->argv[i]);
     yas_free(command->argv);
     yas_free(command);
@@ -365,7 +365,8 @@ void command_inspect(command_t *command, size_t indent) {
         return;
     indent_printf(indent, "flags = %u\n", command->flags);
     indent_printf(indent, "args = {\n");
-    for (int i = 0; i < command->argc; ++i)
+    size_t i;
+    for (i = 0; i < command->argc; ++i)
         argument_inspect(command->argv[i], indent + 1);
     
     if (command->in) {

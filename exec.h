@@ -19,4 +19,4 @@
 
 void exec_command(command_t *command, task_list_t *tasklist);
 
-#endif // _EXEC_H_
+#endif /* _EXEC_H_ */

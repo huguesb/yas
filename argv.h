@@ -29,4 +29,4 @@ char** argv_get_argv(argv_t *argv);
 
 void argv_inspect(argv_t *argv);
 
-#endif // _ARGV_H_
+#endif /* _ARGV_H_ */

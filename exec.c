@@ -68,7 +68,7 @@ char* eval_argument(argument_t *argument, exec_context_t *cxt) {
             val = (char*)yas_malloc((strlen(env) + 1) * sizeof(char));
             strcpy(val, env);
         } else {
-            // empty string for non-existent variables
+            /* empty string for non-existent variables */
             val = (char*)yas_malloc(sizeof(char));
             *val = 0;
         }
@@ -90,7 +90,7 @@ char* eval_argument(argument_t *argument, exec_context_t *cxt) {
             } else {
                 exec_internal(cmd, cxt);
             }
-            // no possible return
+            /* no possible return */
         } else if (pid == -1) {
             fprintf(stderr, "Unable to fork.\n");
             return NULL;
@@ -132,7 +132,8 @@ char* eval_argument(argument_t *argument, exec_context_t *cxt) {
 int argv_eval(argv_t *argv, command_t *command, exec_context_t *cxt) {
     const size_t n = command_argc(command);
     argument_t **d = command_argv(command);
-    for (size_t i = 0; i < n; ++i) {
+    size_t i;
+    for (i = 0; i < n; ++i) {
         char *s = eval_argument(d[i], cxt);
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
@@ -185,21 +186,21 @@ int exec_setup_redir(command_t *command, exec_context_t *cxt) {
 int exec_builtin(argv_t *argv, exec_context_t *cxt) {
     size_t n = argv_get_argc(argv);
     char **d = argv_get_argv(argv);
-    // try builtin commands
+    /* try builtin commands */
     if (!strcmp(*d, "cd")) {
         if (n) {
             if (chdir(d[1]))
                 fprintf(stderr, "No such directory : %s\n", d[1]);
         } else {
-            // TODO : find home dir
+            /* TODO : find home dir */
             chdir("");
         }
         return 0;
     } else if (!strcmp(*d, "exit")) {
         exit(0);
     } else if (!strcmp(*d, "list_tasks")) {
-        size_t n = task_list_get_size(cxt->tasklist);
-        for (size_t i = 0; i < n; ++i)
+        size_t i, n = task_list_get_size(cxt->tasklist);
+        for (i = 0; i < n; ++i)
             task_inspect(task_list_get_task(cxt->tasklist, i));
         return 0;
     }
@@ -214,7 +215,7 @@ void exec_internal(command_t *command, exec_context_t *cxt) {
         exit(1);
     if (!exec_builtin(argv, cxt))
         exit(0);
-    // exec external command
+    /* exec external command */
     char **d = argv_get_argv(argv);
     int errcode = execvp(*d, d);
     fprintf(stderr, "Command not found: %s\n", *d);
@@ -243,12 +244,12 @@ void exec_pipechain(command_t *command, exec_context_t *cxt) {
                 close(fd[0]);
                 close(fd[1]);
             }
-            // exec_internal never returns...
+            /* exec_internal never returns... */
             exec_internal(argument_get_command(d[i]), cxt);
         }
         if (command_is_background(argument_get_command(d[i]))) {
             pid[i] = 0;
-            // TODO: add to list?
+            /* TODO: add to list? */
         }
         close(fd[1]);
         pfd = fd[0];

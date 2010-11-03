@@ -53,4 +53,4 @@ char* argument_get_variable(argument_t *argument);
 command_t* argument_get_command(argument_t *argument);
 argument_t** argument_get_arguments(argument_t *argument);
 
-#endif // _COMMAND_H_
+#endif /* _COMMAND_H_ */

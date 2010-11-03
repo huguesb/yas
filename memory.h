@@ -25,4 +25,4 @@ void yas_mem_error();
 typedef void (*yas_mem_error_handler_t)();
 void yas_set_mem_error_handler(yas_mem_error_handler_t handler);
 
-#endif // _MEMORY_H_
+#endif /* _MEMORY_H_ */

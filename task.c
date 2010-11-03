@@ -16,10 +16,7 @@
 #include "memory.h"
 
 #include <stdio.h>
-// #include <unistd.h>
-// #include <errno.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
+#include <string.h>
 #include <sys/wait.h>
 
 struct _task {
@@ -75,7 +72,7 @@ void task_inspect(task_t *task) {
     if (!task)
         return;
     
-    // detect termination of background task
+    /* detect termination of background task */
     if (task->status == TASK_STATUS_UNKNOWN || task->status == TASK_STATUS_RUNNING) {
         int stat;
         pid_t pid = waitpid(task->pid, &stat, WNOHANG);
@@ -108,12 +105,13 @@ void task_inspect(task_t *task) {
     fprintf(stdout, "    ");
     size_t n = argv_get_argc(task->argv);
     char **d = argv_get_argv(task->argv);
-    for (size_t i = 0; i < n; ++i)
+    size_t i;
+    for (i = 0; i < n; ++i)
         fprintf(stdout, " %s", d[i]);
     fputc('\n', stdout);
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/******************************************************************************/
 
 struct _task_list {
     size_t n;
@@ -139,7 +137,8 @@ task_list_t* task_list_new() {
 void task_list_destroy(task_list_t *list) {
     if (!list)
         return;
-    for (size_t i = 0; i < list->n; ++i)
+    size_t i;
+    for (i = 0; i < list->n; ++i)
         task_destroy(list->d[i]);
     yas_free(list->d);
     yas_free(list);
@@ -154,10 +153,18 @@ task_t* task_list_get_task(task_list_t *list, size_t index) {
 }
 
 void task_list_add(task_list_t *list, task_t *task) {
+    if (!list || !task)
+        return;
     task_list_grow(list, 1);
     list->d[list->n++] = task;
 }
 
-void task_list_remove(task_list_t *list, task_t *task) {
-    
+void task_list_remove(task_list_t *list, size_t index) {
+    if (!list || index >= list->n)
+        return;
+    --list->n;
+    if (index < list->n)
+        memcpy(list->d + index,
+               list->d + index + 1,
+               (list->n - index) * sizeof(task_t*));
 }

@@ -35,4 +35,4 @@ void string_append_char(string_t *dst, char c);
 void string_append_cstr(string_t *dst, const char *str);
 void string_append_cstrn(string_t *dst, const char *str, size_t n);
 
-#endif // _DSTRING_H_
+#endif /* _DSTRING_H_ */

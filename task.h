@@ -41,6 +41,6 @@ size_t task_list_get_size(task_list_t *list);
 task_t* task_list_get_task(task_list_t *list, size_t index);
 
 void task_list_add(task_list_t *list, task_t *task);
-void task_list_remove(task_list_t *list, task_t *task);
+void task_list_remove(task_list_t *list, size_t index);
 
-#endif // _TASK_H_
+#endif /* _TASK_H_ */

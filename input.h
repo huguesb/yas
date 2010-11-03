@@ -16,4 +16,4 @@
 
 char* yas_readline(const char *prompt);
 
-#endif // _INPUT_H_
+#endif /* _INPUT_H_ */
