@@ -16,16 +16,33 @@
 #include "memory.h"
 
 #include <stdio.h>
+// #include <unistd.h>
+// #include <errno.h>
+// #include <sys/types.h>
+// #include <sys/stat.h>
+#include <sys/wait.h>
 
 struct _task {
     pid_t pid;
     argv_t *argv;
+    int status;
+    int status_code;
+};
+
+enum task_status {
+    TASK_STATUS_UNKNOWN,
+    TASK_STATUS_RUNNING,
+    TASK_STATUS_EXITED,
+    TASK_STATUS_SIGNALED,
+    TASK_STATUS_ERROR
 };
 
 task_t* task_new() {
     task_t *task = (task_t*)yas_malloc(sizeof(task_t));
     task->pid = 0;
     task->argv = 0;
+    task->status = TASK_STATUS_UNKNOWN;
+    task->status_code = 0;
     return task;
 }
 
@@ -57,7 +74,38 @@ void task_set_argv(task_t *task, argv_t *argv) {
 void task_inspect(task_t *task) {
     if (!task)
         return;
-    fprintf(stdout, "%u :", task->pid);
+    
+    // detect termination of background task
+    if (task->status == TASK_STATUS_UNKNOWN || task->status == TASK_STATUS_RUNNING) {
+        int stat;
+        pid_t pid = waitpid(task->pid, &stat, WNOHANG);
+        if (pid == task->pid) {
+            if (WIFEXITED(stat)) {
+                task->status = TASK_STATUS_EXITED;
+                task->status_code = WEXITSTATUS(stat);
+            } else if (WIFSIGNALED(stat)) {
+                task->status = TASK_STATUS_SIGNALED;
+                task->status_code = WTERMSIG(stat);
+            } else {
+                task->status = TASK_STATUS_RUNNING;
+            }
+        } else if (pid) {
+            task->status = TASK_STATUS_ERROR;
+        } else {
+            task->status = TASK_STATUS_RUNNING;
+        }
+    }
+    
+    fprintf(stdout, "%u :  ", task->pid);
+    if (task->status == TASK_STATUS_EXITED)
+        fprintf(stdout, "exit %3u", task->status_code);
+    else if (task->status == TASK_STATUS_SIGNALED)
+        fprintf(stdout, "sig  %3u", task->status_code);
+    else if (task->status == TASK_STATUS_ERROR)
+        fprintf(stdout, "error   ");
+    else
+        fprintf(stdout, "running ");
+    fprintf(stdout, "    ");
     size_t n = argv_get_argc(task->argv);
     char **d = argv_get_argv(task->argv);
     for (size_t i = 0; i < n; ++i)

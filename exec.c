@@ -280,6 +280,7 @@ void exec_command(command_t *command, task_list_t *tasklist) {
                     task_set_pid(task, pid);
                     task_set_argv(task, argv);
                     task_list_add(cxt.tasklist, task);
+                    fprintf(stderr, "[%u] %u\n", task_list_get_size(cxt.tasklist), pid);
                 } else {
                     argv_destroy(argv);
                     waitpid(pid, NULL, 0);
