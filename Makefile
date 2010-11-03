@@ -1,11 +1,77 @@
-CC=gcc
-CFLAGS=-Wall -g
 
-all: tst shell
+CC            = gcc
+DEFINES       = -DYAS_USE_READLINE
+CFLAGS        = -pipe -std=c99 -march=i686 -O2 -pipe -Wall -Wextra -W $(DEFINES)
+LINK          = gcc
+LFLAGS        = 
+LIBS          = -lreadline -lncurses
+DEL_FILE      = rm -f
+SYMLINK       = ln -f -s
+DEL_DIR       = rmdir
+MOVE          = mv -f
+CHK_DIR_EXISTS= test -d
+MKDIR         = mkdir -p
 
-tst: tst.o readcmd.o
+####### Output directory
 
-shell: shell.o readcmd.o
+OBJECTS_DIR   = ./
 
-clean:
-	rm -f shell shell.o readcmd.o tst tst.o
+####### Files
+
+SOURCES       = memory.c \
+		dstring.c \
+		input.c \
+		command.c \
+		exec.c \
+		main.c 
+OBJECTS       = memory.o \
+		dstring.o \
+		input.o \
+		command.o \
+		exec.o \
+		main.o
+DESTDIR       = 
+TARGET        = yas
+
+first: all
+
+####### Build rules
+
+all: $(TARGET)
+
+$(TARGET):  $(OBJECTS)  
+	$(LINK) $(LFLAGS) -o $(TARGET) $(OBJECTS) $(OBJCOMP) $(LIBS)
+
+
+clean: FORCE 
+	-$(DEL_FILE) $(OBJECTS)
+
+####### Compile
+
+memory.o: memory.c memory.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o memory.o memory.c
+
+dstring.o: dstring.c dstring.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o dstring.o dstring.c
+
+input.o: input.c input.h \
+		memory.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o input.o input.c
+
+command.o: command.c command.h \
+		memory.h \
+		dstring.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o command.o command.c
+
+exec.o: exec.c exec.h \
+		command.h \
+		memory.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o exec.o exec.c
+
+main.o: main.c memory.h \
+		input.h \
+		command.h \
+		exec.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o main.o main.c
+
+FORCE:
