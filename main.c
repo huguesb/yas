@@ -18,22 +18,80 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <signal.h>
+
+static const char* sigchld_reason(int code) {
+    if (code == CLD_EXITED)
+        return "Exited";
+    else if (code == CLD_KILLED)
+        return "Killed";
+    else if (code == CLD_DUMPED)
+        return "Dumped";
+    else if (code == CLD_TRAPPED)
+        return "Trapped";
+    else if (code == CLD_STOPPED)
+        return "Stopped";
+    else if (code == CLD_CONTINUED)
+        return "Continued";
+    return "";
+}
+
+static task_list_t *tasklist = 0;
+
+static void sigchld_handler(int sig, siginfo_t *info, void *context) {
+    (void)context;
+    if (sig != SIGCHLD || info->si_signo != SIGCHLD)
+        return;
+    size_t i;
+    size_t n = task_list_get_size(tasklist);
+    for (i = 0; i < n; ++i) {
+        if (task_get_pid(task_list_get_task(tasklist, i)) == info->si_pid) {
+            task_list_remove(tasklist, i);
+            fprintf(stderr,
+                    "\n[%u] %s\n",
+                    info->si_pid,
+                    sigchld_reason(info->si_code));
+            fflush(stderr);
+            break;
+        }
+    }
+}
+
+static void install_sigchld_handler() {
+    static struct sigaction act;
+    act.sa_flags = SA_RESTART | SA_SIGINFO;
+    act.sa_sigaction = sigchld_handler;
+    if (sigaction(SIGCHLD, &act, NULL)) {
+        fprintf(stderr, "Failed to install SIGCHLD handler.\n");
+    }
+}
+
+int is_nontrivial(const char *s) {
+    if (!s)
+        return 0;
+    while (*s)
+        if (!isspace(*s++))
+            return 1;
+    return 0;
+}
 
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
-    task_list_t *tasklist = task_list_new();
+    tasklist = task_list_new();
+    install_sigchld_handler();
     while (1) {
         char *line = yas_readline("yas> ");
-        if (line) {
+        if (is_nontrivial(line)) {
             size_t line_sz = strlen(line);
             command_t *command = command_create(line, line_sz);
             yas_free(line);
             if (!command) {
-                // TODO: better error report interface
+                /* TODO: better error report interface */
                 printf("syntax error.\n");
             } else {
-                //command_inspect(command, 0);
+                /* command_inspect(command, 0); */
                 exec_command(command, tasklist);
                 command_destroy(command);
             }
