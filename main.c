@@ -63,10 +63,10 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
         if (task_get_pid(task) == info->si_pid) {
             task_list_remove(tasklist, i);
             fprintf(stderr,
-                    "\r[%u] %s after %lu us\n",
+                    "\r[%u] %s after %lli ms\n",
                     info->si_pid,
                     sigchld_reason(info->si_code),
-                    task_get_elapsed(task));
+                    task_get_elapsed_millis(task));
             fflush(stderr);
             // TODO: move that call in a readline event hook
             // TODO: achieve similar effect for non-readline input

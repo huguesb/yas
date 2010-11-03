@@ -30,7 +30,9 @@ void task_set_pid(task_t *task, pid_t pid);
 argv_t* task_get_argv(task_t *task);
 void task_set_argv(task_t *task, argv_t *argv);
 
-suseconds_t task_get_elapsed(task_t *task);
+long long task_get_elapsed_seconds(task_t *task);
+long long task_get_elapsed_millis(task_t *task);
+long long task_get_elapsed_micros(task_t *task);
 
 void task_inspect(task_t *task);
 
