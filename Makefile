@@ -1,7 +1,7 @@
 
 CC            = gcc
 DEFINES       = -DYAS_USE_READLINE
-CFLAGS        = -pipe -std=c99 -O2 -pipe -Wall -Wextra -W $(DEFINES)
+CFLAGS        = -pipe -O2 -pipe -Wall -Wextra -W $(DEFINES)
 LINK          = gcc
 LFLAGS        = 
 LIBS          = -lreadline -lncurses
