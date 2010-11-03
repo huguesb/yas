@@ -26,6 +26,14 @@
 #include <readline/readline.h>
 #endif
 
+int get_cpu_count() {
+    FILE *f = popen("cat /proc/cpuinfo | grep processor | wc -l", "r");
+    char buffer[16];
+    size_t size = fread(buffer, 1, 16, f);
+    pclose(f);
+    return size ? atoi(buffer) : 0;
+}
+
 static const char* sigchld_reason(int code) {
     if (code == CLD_EXITED)
         return "Exited";
