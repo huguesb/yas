@@ -25,7 +25,9 @@
 #include <unistd.h>
 #include <glob.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 void exec_internal(command_t *command);
 
@@ -180,7 +182,39 @@ void exec_internal(command_t *command) {
             argv_add_split(argv, s);
         }
     }
-    //argv_inspect(argv);
+    
+    if (command_redir_in(command)) {
+        char *s = eval_argument(command_redir_in(command));
+        if (s == NULL) {
+            fprintf(stderr, "Argument evaluation failed.\n");
+            argument_inspect(command_redir_in(command), 0);
+            exit(1);
+        }
+        int fd = open(s, O_RDONLY);
+        if (fd == -1) {
+            fprintf(stderr, "Unable to read from %s.\n", s);
+            exit(1);
+        }
+        dup2(fd, STDIN_FILENO);
+        close(fd);
+    }
+    
+    if (command_redir_out(command)) {
+        char *s = eval_argument(command_redir_out(command));
+        if (s == NULL) {
+            fprintf(stderr, "Argument evaluation failed.\n");
+            argument_inspect(command_redir_out(command), 0);
+            exit(1);
+        }
+        int fd = open(s, O_WRONLY | O_CREAT);
+        if (fd == -1) {
+            fprintf(stderr, "Unable to write into %s.\n", s);
+            exit(1);
+        }
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+    }
+    
     int errcode = execvp(argv->d[0], argv->d);
     fprintf(stderr, "Command not found: %s\n", argv->d[0]);
     exit(errcode);
