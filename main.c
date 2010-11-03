@@ -17,9 +17,14 @@
 #include "exec.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
+
+#ifdef YAS_USE_READLINE
+#include <readline/readline.h>
+#endif
 
 static const char* sigchld_reason(int code) {
     if (code == CLD_EXITED)
@@ -46,13 +51,20 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
     size_t i;
     size_t n = task_list_get_size(tasklist);
     for (i = 0; i < n; ++i) {
-        if (task_get_pid(task_list_get_task(tasklist, i)) == info->si_pid) {
+        task_t *task = task_list_get_task(tasklist, i);
+        if (task_get_pid(task) == info->si_pid) {
             task_list_remove(tasklist, i);
             fprintf(stderr,
-                    "\n[%u] %s\n",
+                    "\r[%u] %s after %lu us\n",
                     info->si_pid,
-                    sigchld_reason(info->si_code));
+                    sigchld_reason(info->si_code),
+                    task_get_elapsed(task));
             fflush(stderr);
+            // TODO: move that call in a readline event hook
+            // TODO: achieve similar effect for non-readline input
+#ifdef YAS_USE_READLINE
+            rl_forced_update_display();
+#endif
             break;
         }
     }
