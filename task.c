@@ -18,12 +18,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 
 struct _task {
     pid_t pid;
     argv_t *argv;
     int status;
     int status_code;
+    suseconds_t start;
 };
 
 enum task_status {
@@ -40,6 +42,9 @@ task_t* task_new() {
     task->argv = 0;
     task->status = TASK_STATUS_UNKNOWN;
     task->status_code = 0;
+    struct timeval start;
+    gettimeofday(&start, NULL);
+    task->start = start.tv_usec;
     return task;
 }
 
@@ -66,6 +71,12 @@ argv_t* task_get_argv(task_t *task) {
 void task_set_argv(task_t *task, argv_t *argv) {
     if (task)
         task->argv = argv;
+}
+
+suseconds_t task_get_elapsed(task_t *task) {
+    struct timeval start;
+    gettimeofday(&start, NULL);
+    return start.tv_usec - task->start;
 }
 
 void task_inspect(task_t *task) {
