@@ -142,6 +142,7 @@ typedef struct {
     size_t length;
     size_t position;
     int error;
+    int substitution;
 } parse_context_t;
 
 int parser_at_end(parse_context_t *cxt) {
@@ -172,8 +173,16 @@ command_t* parse_command_line(parse_context_t *cxt);
 command_t* parse_command(parse_context_t *cxt);
 argument_t* parse_argument(parse_context_t *cxt);
 
+//#define YAS_DEBUG_PARSE
+
+#ifdef YAS_DEBUG_PARSE
+#define dprintf(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
+#else
+#define dprintf(fmt, ...)
+#endif
+
 command_t* parse_command_line(parse_context_t *cxt) {
-//     printf("parse_command_line : %i/%i\n", cxt->position, cxt->length);
+    dprintf("parse_command_line : %i/%i\n", cxt->position, cxt->length);
     command_t *p = 0;
     while (!parser_at_end(cxt)) {
         command_t *cmd = parse_command(cxt);
@@ -185,12 +194,12 @@ command_t* parse_command_line(parse_context_t *cxt) {
         command_destroy(p);
         p = 0;
     }
-//     printf("=> %p\n", p);
+    dprintf("=> %p\n", p);
     return p;
 }
 
 command_t* parse_command(parse_context_t *cxt) {
-//     printf("parse_command : %i/%i\n", cxt->position, cxt->length);
+    dprintf("parse_command : %i/%i\n", cxt->position, cxt->length);
     command_t *cmd = 0;
     while (!parser_at_end(cxt)) {
         argument_t *arg = parse_argument(cxt);
@@ -207,7 +216,7 @@ command_t* parse_command(parse_context_t *cxt) {
                 if (c == '&')
                     cmd->flags |= COMMAND_IS_BACKGROUND;
                 break;
-            } else if (c == ')') {
+            } else if (c == ')' || c == '`') {
                 break;
             } else if (c == '<') {
                 if (!cmd->in) {
@@ -238,12 +247,12 @@ command_t* parse_command(parse_context_t *cxt) {
         command_destroy(cmd);
         cmd = 0;
     }
-//     printf("=> %p\n", cmd);
+    dprintf("=> %p\n", cmd);
     return cmd;
 }
 
 argument_t* parse_argument(parse_context_t *cxt) {
-//     printf("parse_argument : %i/%i\n", cxt->position, cxt->length);
+    dprintf("parse_argument : %i/%i\n", cxt->position, cxt->length);
     string_t *tmp = string_new();
     argument_t *p = 0;
     parser_skip_ws(cxt);
@@ -257,11 +266,17 @@ argument_t* parse_argument(parse_context_t *cxt) {
             p = argument_add_sub_from_string(p, tmp, quoted);
             quoted = !quoted;
             parser_advance(cxt, 1);
-        } else if (c == '$') {
+        } else if (c == '$' || (c == '`' && !quoted && !cxt->substitution)) {
             p = argument_add_sub_from_string(p, tmp, quoted);
-            parser_advance(cxt, 1);
-            c = parser_char(cxt);
-            if (c == '(') {
+            int is_sub = c == '`';
+            if (!is_sub) {
+                parser_advance(cxt, 1);
+                c = parser_char(cxt);
+                is_sub = c == '(';
+            } else {
+                cxt->substitution = 1;
+            }
+            if (is_sub) {
                 // command substitution
                 parser_advance(cxt, 1);
                 command_t *sub = parse_command_line(cxt);
@@ -274,10 +289,14 @@ argument_t* parse_argument(parse_context_t *cxt) {
                 if (quoted)
                     arg->type |= ARGTYPE_QUOTED;
                 p = argument_add_sub(p, arg);
-                if (parser_char(cxt) == ')') {
+                char pc = parser_char(cxt);
+                if ((c == '(' && pc == ')') || (c == '`' && pc == '`')) {
                     parser_advance(cxt, 1);
+                    if (c == '`')
+                        cxt->substitution = 0;
                 } else {
                     // TODO: report syntax error
+                    fprintf(stderr, "%c != %c\n", c, pc);
                     cxt->error = 1;
                 }
             } else if (isalnum(c) || (c == '_')) {
@@ -298,7 +317,7 @@ argument_t* parse_argument(parse_context_t *cxt) {
                 // TODO: report syntax error
                 cxt->error = 1;
             }
-        } else if (!quoted && (c <= ' ' || c == '|' || c == '<' || c == '>' || c == '&' || c == ')')) {
+        } else if (!quoted && (c <= ' ' || c == '|' || c == '<' || c == '>' || c == '&' || c == ')' || c == '`')) {
             parser_skip_ws(cxt);
             break;
         } else {
@@ -312,7 +331,7 @@ argument_t* parse_argument(parse_context_t *cxt) {
         p = argument_add_sub_from_string(p, tmp, quoted);
     }
     string_destroy(tmp);
-//     printf("=> %p\n", p);
+    dprintf("=> %p\n", p);
     return p;
 }
 
@@ -324,7 +343,12 @@ command_t* command_create(const char *str, size_t sz) {
     cxt.length = sz;
     cxt.position = 0;
     cxt.error = 0;
-    return parse_command_line(&cxt);
+    cxt.substitution = 0;
+    command_t* cmd = parse_command_line(&cxt);
+    if (cxt.error) {
+        fprintf(stderr, "syntax error @ %u\n", cxt.position);
+    }
+    return cmd;
 }
 
 void command_destroy(command_t *command) {
