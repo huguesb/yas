@@ -16,6 +16,7 @@
 #include "memory.h"
 #include "command.h"
 #include "dstring.h"
+#include "argv.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -23,7 +24,6 @@
 #include <stddef.h>
 #include <string.h>
 #include <unistd.h>
-#include <glob.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -45,9 +45,17 @@ char* get_pwd() {
     return buffer;
 }
 
-void exec_internal(command_t *command);
+typedef struct {
+    task_list_t *tasklist;
+} exec_context_t;
 
-char* eval_argument(argument_t *argument) {
+char* eval_argument(argument_t *argument, exec_context_t *cxt);
+int argv_eval(argv_t *argv, command_t *command, exec_context_t *cxt);
+int exec_setup_redir(command_t *command, exec_context_t *cxt);
+void exec_internal(command_t *command, exec_context_t *cxt);
+void exec_pipechain(command_t *command, exec_context_t *cxt);
+
+char* eval_argument(argument_t *argument, exec_context_t *cxt) {
     char *val = 0;
     int type = argument_type(argument);
     if (type == ARGTYPE_STRING) {
@@ -75,7 +83,13 @@ char* eval_argument(argument_t *argument) {
             dup2(fd[1], STDOUT_FILENO);
             close(fd[0]);
             close(fd[1]);
-            exec_internal(argument_get_command(argument));
+            command_t *cmd = argument_get_command(argument);
+            if (command_is_pipechain(cmd)) {
+                exec_pipechain(cmd, cxt);
+                exit(0);
+            } else {
+                exec_internal(cmd, cxt);
+            }
             // no possible return
         } else if (pid == -1) {
             fprintf(stderr, "Unable to fork.\n");
@@ -101,7 +115,7 @@ char* eval_argument(argument_t *argument) {
         string_t *s = string_new();
         argument_t **l = argument_get_arguments(argument);
         while (l && *l) {
-            char *tmp = eval_argument(*l);
+            char *tmp = eval_argument(*l, cxt);
             if (!tmp) {
                 string_destroy(s);
                 return 0;
@@ -114,98 +128,29 @@ char* eval_argument(argument_t *argument) {
     return val;
 }
 
-typedef struct {
-    size_t n;
-    size_t a;
-    char **d;
-} argv_t;
 
-void argv_grow(argv_t *argv, size_t n) {
-    if (argv->a - argv->n > n)
-        return;
-    argv->a *= 2;
-    argv->d = (char**)yas_realloc(argv->d, argv->a * sizeof(char*));
-}
-
-argv_t* argv_new() {
-    argv_t *argv = (argv_t*)yas_malloc(sizeof(argv_t));
-    argv->n = 0;
-    argv->a = 1;
-    argv->d = (char**)yas_malloc(argv->a * sizeof(char*));
-    argv->d[0] = 0;
-    return argv;
-}
-
-void argv_destroy(argv_t *argv) {
-    yas_free(argv->d);
-    yas_free(argv);
-}
-
-void argv_add(argv_t *argv, const char *s) {
-//     fprintf(stderr, "=> %s\n", s);
-    argv_grow(argv, 1);
-    argv->d[argv->n] = (char*)yas_malloc((strlen(s)+1) * sizeof(char));
-    strcpy(argv->d[argv->n], s);
-    argv->d[++argv->n] = 0;
-}
-
-void argv_add_split(argv_t *argv, const char *s) {
-    // space split & glob expansion
-//     fprintf(stderr, "expanding %s\n", s);
-    const char *last = s, *current = s;
-    do {
-        if (isspace(*current) || !*current) {
-            if (current != last) {
-                char *tmp = (char*)yas_malloc((current - last + 1) * sizeof(char));
-                strncpy(tmp, last, current - last);
-                tmp[current - last] = 0;
-                
-                glob_t globs;
-                int err = glob(tmp,
-                                GLOB_NOMAGIC | GLOB_TILDE_CHECK | GLOB_ERR,
-                                NULL, &globs);
-                if (err) {
-                    fprintf(stderr, "Wildcard/tilde expansion failed.\n");
-                    fprintf(stderr, "%s\n", tmp);
-                    exit(1);
-                }
-//                 fprintf(stderr, "expanded %s into %u parts\n", tmp, globs.gl_pathc);
-                for (size_t j = 0; j < globs.gl_pathc; ++j)
-                    argv_add(argv, globs.gl_pathv[j]);
-                globfree(&globs);
-                yas_free(tmp);
-            }
-            last = current + 1;
-        }
-    } while (*(current++));
-}
-
-void argv_inspect(argv_t *argv) {
-    for (size_t i = 0; i < argv->n; ++i)
-        fprintf(stderr, "%s\n", argv->d[i]);
-}
-
-int argv_eval(argv_t *argv, command_t *command) {
+int argv_eval(argv_t *argv, command_t *command, exec_context_t *cxt) {
     const size_t n = command_argc(command);
     argument_t **d = command_argv(command);
     for (size_t i = 0; i < n; ++i) {
-        char *s = eval_argument(d[i]);
+        char *s = eval_argument(d[i], cxt);
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
             argument_inspect(d[i], 0);
             return 1;
         }
-        if (argument_flags(d[i]) & ARGTYPE_QUOTED)
-            argv_add(argv, s);
-        else
-            argv_add_split(argv, s);
+        int ret = (argument_flags(d[i]) & ARGTYPE_QUOTED)
+                ? argv_add(argv, s)
+                : argv_add_split(argv, s);
+        if (ret)
+            return 1;
     }
     return 0;
 }
 
-int exec_setup_redir(command_t *command) {
+int exec_setup_redir(command_t *command, exec_context_t *cxt) {
     if (command_redir_in(command)) {
-        char *s = eval_argument(command_redir_in(command));
+        char *s = eval_argument(command_redir_in(command), cxt);
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
             argument_inspect(command_redir_in(command), 0);
@@ -220,7 +165,7 @@ int exec_setup_redir(command_t *command) {
         close(fd);
     }
     if (command_redir_out(command)) {
-        char *s = eval_argument(command_redir_out(command));
+        char *s = eval_argument(command_redir_out(command), cxt);
         if (s == NULL) {
             fprintf(stderr, "Argument evaluation failed.\n");
             argument_inspect(command_redir_out(command), 0);
@@ -237,38 +182,41 @@ int exec_setup_redir(command_t *command) {
     return 0;
 }
 
-int exec_builtin(argv_t *argv) {
+int exec_builtin(argv_t *argv, exec_context_t *cxt) {
+    size_t n = argv_get_argc(argv);
+    char **d = argv_get_argv(argv);
     // try builtin commands
-    if (!strcmp(argv->d[0], "cd")) {
-        if (argv->n) {
-            if (chdir(argv->d[1]))
-                fprintf(stderr, "No such directory : %s\n", argv->d[1]);
+    if (!strcmp(*d, "cd")) {
+        if (n) {
+            if (chdir(d[1]))
+                fprintf(stderr, "No such directory : %s\n", d[1]);
         } else {
             // TODO : find home dir
             chdir("");
         }
         return 0;
-    } else if (!strcmp(argv->d[0], "exit")) {
+    } else if (!strcmp(*d, "exit")) {
         exit(0);
     }
     return 1;
 }
 
-void exec_internal(command_t *command) {
+void exec_internal(command_t *command, exec_context_t *cxt) {
     argv_t *argv = argv_new();
-    if (argv_eval(argv, command))
+    if (argv_eval(argv, command, cxt))
         exit(1);
-    if (exec_setup_redir(command))
+    if (exec_setup_redir(command, cxt))
         exit(1);
-    if (!exec_builtin(argv))
+    if (!exec_builtin(argv, cxt))
         exit(0);
     // exec external command
-    int errcode = execvp(argv->d[0], argv->d);
-    fprintf(stderr, "Command not found: %s\n", argv->d[0]);
+    char **d = argv_get_argv(argv);
+    int errcode = execvp(*d, d);
+    fprintf(stderr, "Command not found: %s\n", *d);
     exit(errcode);
 }
 
-void exec_pipechain(command_t *command) {
+void exec_pipechain(command_t *command, exec_context_t *cxt) {
     size_t i = 0;
     const size_t n = command_argc(command);
     argument_t **d = command_argv(command);
@@ -291,7 +239,7 @@ void exec_pipechain(command_t *command) {
                 close(fd[1]);
             }
             // exec_internal never returns...
-            exec_internal(argument_get_command(d[i]));
+            exec_internal(argument_get_command(d[i]), cxt);
         }
         if (command_is_background(argument_get_command(d[i]))) {
             pid[i] = 0;
@@ -306,31 +254,37 @@ void exec_pipechain(command_t *command) {
             waitpid(pid[i], NULL, 0);
 }
 
-void exec_command(command_t *command) {
+void exec_command(command_t *command, task_list_t *tasklist) {
+    exec_context_t cxt;
+    cxt.tasklist = tasklist;
     if (command_is_pipechain(command)) {
-        exec_pipechain(command);
+        exec_pipechain(command, &cxt);
     } else {
         argv_t *argv = argv_new();
-        if (argv_eval(argv, command)) {
+        if (argv_eval(argv, command, &cxt)) {
             argv_destroy(argv);
             return;
         }
-        if (!exec_builtin(argv)) {
+        if (!exec_builtin(argv, &cxt)) {
             argv_destroy(argv);
         } else {
             pid_t pid = fork();
             if (pid) {
-                argv_destroy(argv);
                 if (command_is_background(command)) {
-                    
+                    task_t *task = task_new();
+                    task_set_pid(task, pid);
+                    task_set_argv(task, argv);
+                    task_list_add(tasklist, task);
                 } else {
+                    argv_destroy(argv);
                     waitpid(pid, NULL, 0);
                 }
             } else {
-                if (exec_setup_redir(command))
+                if (exec_setup_redir(command, &cxt))
                     exit(1);
-                int errcode = execvp(argv->d[0], argv->d);
-                fprintf(stderr, "Command not found: %s\n", argv->d[0]);
+                char **d = argv_get_argv(argv);
+                int errcode = execvp(*d, d);
+                fprintf(stderr, "Command not found: %s\n", *d);
                 exit(errcode);
             }
         }

@@ -22,12 +22,16 @@ SOURCES       = memory.c \
 		dstring.c \
 		input.c \
 		command.c \
+		argv.c \
+		task.c \
 		exec.c \
 		main.c 
 OBJECTS       = memory.o \
 		dstring.o \
 		input.o \
 		command.o \
+		argv.o \
+		task.o \
 		exec.o \
 		main.o
 DESTDIR       = 
@@ -62,6 +66,16 @@ command.o: command.c command.h \
 		memory.h \
 		dstring.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o command.o command.c
+
+argv.o: argv.c argv.h \
+		memory.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o argv.o argv.c
+
+task.o: task.c task.h \
+		command.h \
+		argv.h \
+		memory.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o task.o task.c
 
 exec.o: exec.c exec.h \
 		command.h \

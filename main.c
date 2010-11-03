@@ -22,6 +22,7 @@
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
+    task_list_t *tasklist = task_list_new();
     while (1) {
         char *line = yas_readline("yas> ");
         if (line) {
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
                 printf("syntax error.\n");
             } else {
                 //command_inspect(command, 0);
-                exec_command(command);
+                exec_command(command, tasklist);
                 command_destroy(command);
             }
         }

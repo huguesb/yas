@@ -11,5 +11,5 @@ readline {
     LIBS += -lreadline -lncurses
 }
 
-HEADERS += memory.h dstring.h input.h command.h exec.h
-SOURCES += memory.c dstring.c input.c command.c exec.c main.c
+HEADERS += memory.h dstring.h input.h command.h argv.h task.h exec.h
+SOURCES += memory.c dstring.c input.c command.c argv.c task.c exec.c main.c

@@ -11,12 +11,22 @@
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 *******************************************************************************/
 
-#ifndef _EXEC_H_
-#define _EXEC_H_
+#ifndef _ARGV_H_
+#define _ARGV_H_
 
-#include "command.h"
-#include "task.h"
+#include <stddef.h>
 
-void exec_command(command_t *command, task_list_t *tasklist);
+typedef struct _argv argv_t;
 
-#endif // _EXEC_H_
+argv_t* argv_new();
+void argv_destroy(argv_t *argv);
+
+int argv_add(argv_t *argv, const char *s);
+int argv_add_split(argv_t *argv, const char *s);
+
+size_t argv_get_argc(argv_t *argv);
+char** argv_get_argv(argv_t *argv);
+
+void argv_inspect(argv_t *argv);
+
+#endif // _ARGV_H_
