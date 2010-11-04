@@ -274,15 +274,16 @@ void exec_command(command_t *command, task_list_t *tasklist) {
         if (!exec_builtin(argv, &cxt)) {
             argv_destroy(argv);
         } else {
+            task_t *task = task_new();
             pid_t pid = fork();
             if (pid) {
                 if (command_is_background(command)) {
-                    task_t *task = task_new();
                     task_set_pid(task, pid);
                     task_set_argv(task, argv);
                     task_list_add(cxt.tasklist, task);
                     fprintf(stderr, "[%u] %u\n", task_list_get_size(cxt.tasklist), pid);
                 } else {
+                    task_destroy(task);
                     argv_destroy(argv);
                     waitpid(pid, NULL, 0);
                 }

@@ -75,7 +75,7 @@ long long task_get_elapsed_seconds(task_t *task) {
     struct timeval current;
     gettimeofday(&current, NULL);
     long long diff = current.tv_sec - task->start.tv_sec;
-    diff += (current.tv_sec - task->start.tv_sec) / 1000000;
+    diff += (current.tv_usec - task->start.tv_usec) / 1000000;
     return diff;
 }
 
@@ -84,7 +84,7 @@ long long task_get_elapsed_millis(task_t *task) {
     gettimeofday(&current, NULL);
     long long diff = current.tv_sec - task->start.tv_sec;
     diff *= 1000;
-    diff += (current.tv_sec - task->start.tv_sec) / 1000;
+    diff += (current.tv_usec - task->start.tv_usec) / 1000;
     return diff;
 }
 
@@ -93,7 +93,7 @@ long long task_get_elapsed_micros(task_t *task) {
     gettimeofday(&current, NULL);
     long long diff = current.tv_sec - task->start.tv_sec;
     diff *= 1000000;
-    diff += (current.tv_sec - task->start.tv_sec);
+    diff += (current.tv_usec - task->start.tv_usec);
     return diff;
 }
 
