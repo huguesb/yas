@@ -59,14 +59,13 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
         if (task_get_pid(task) == info->si_pid) {
             task_list_remove(tasklist, i);
             yas_readline_pre_signal();
+            // TODO: use clok or getrusage to compute average CPU load
             fprintf(stderr,
                     "[%u] %s after %lli ms\n",
                     info->si_pid,
                     sigchld_reason(info->si_code),
                     task_get_elapsed_millis(task));
             fflush(stderr);
-            // TODO: move that call in a readline event hook
-            // TODO: achieve similar effect for non-readline input
             yas_readline_post_signal();
             break;
         }
