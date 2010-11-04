@@ -23,9 +23,10 @@
 #include <readline/history.h>
 
 static int _yas_readline_at_end = 0;
+
 int yas_rl_getc(FILE *in) {
     int c = rl_getc(in);
-    _yas_readline_at_end = (c == 0x04 || feof(in));
+    _yas_readline_at_end = (c == 0x04 || c == EOF || feof(in));
     return c;
 }
 #else
@@ -60,8 +61,11 @@ static void yas_readline_setup() {
 
     /* Make sure stdin is a terminal.  */
     if (!isatty (STDIN_FILENO)) {
+        /*
         fprintf (stderr, "Not a terminal.\n");
         exit (EXIT_FAILURE);
+        */
+        return;
     }
 
     /* Save the terminal attributes so we can restore them later.  */
@@ -118,10 +122,10 @@ char* yas_readline(const char *prompt, int *eof) {
     yas_readline_setup();
 #ifdef YAS_USE_READLINE
     char *s = readline(prompt);
-    if (eof) {
+    if (eof && _yas_readline_at_end) {
         fputc('\n', rl_outstream);
         fflush(rl_outstream);
-        *eof = _yas_readline_at_end;
+        *eof = 1;
     }
     if (s && *s)
         add_history(s);
@@ -141,7 +145,7 @@ char* yas_readline(const char *prompt, int *eof) {
         if (n == 1) {
             if (c == 0x04 || c == '\n') {
                 if (eof)
-                    *eof = (c == 0x04);
+                    *eof = c == 0x04;
                 fputc('\n', stdout);
                 fflush(stdout);
                 break;
@@ -175,6 +179,12 @@ char* yas_readline(const char *prompt, int *eof) {
                     // TODO: handle cursor commands?
                 }
             }
+        } else if (!n) {
+            if (eof)
+                *eof = 1;
+            fputc('\n', stdout);
+            fflush(stdout);
+            break;
         }
     }
     char *s = string_get_cstr_copy(_yas_readline_buffer);
