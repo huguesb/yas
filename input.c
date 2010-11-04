@@ -21,6 +21,13 @@
 #ifdef YAS_USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
+
+static int _yas_readline_at_end = 0;
+int yas_rl_getc(FILE *in) {
+    int c = rl_getc(in);
+    _yas_readline_at_end = (c == 0x04 || feof(in));
+    return c;
+}
 #else
 #include <unistd.h>
 #include <stdlib.h>
@@ -46,7 +53,8 @@ static int _yas_readline_busy = 0;
 static void yas_readline_setup() {
     _yas_readline_busy = 1;
 #ifdef YAS_USE_READLINE
-    
+    _yas_readline_at_end = 0;
+    rl_getc_function = yas_rl_getc;
 #else
     struct termios tattr;
 
@@ -70,7 +78,7 @@ static void yas_readline_setup() {
 
 static void yas_readline_cleanup() {
 #ifdef YAS_USE_READLINE
-    
+    rl_getc_function = rl_getc;
 #else
     tcsetattr (STDIN_FILENO, TCSANOW, &saved_attributes);
 #endif
@@ -110,6 +118,11 @@ char* yas_readline(const char *prompt, int *eof) {
     yas_readline_setup();
 #ifdef YAS_USE_READLINE
     char *s = readline(prompt);
+    if (eof) {
+        fputc('\n', rl_outstream);
+        fflush(rl_outstream);
+        *eof = _yas_readline_at_end;
+    }
     if (s && *s)
         add_history(s);
     /* NOTE : If yas_malloc/yas_free were to diverge from std malloc/free it
