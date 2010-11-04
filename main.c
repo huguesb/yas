@@ -81,12 +81,17 @@ static void install_sigchld_handler() {
     }
 }
 
+/*
+    trivial = empty line, line made of whitspaces, comments
+*/
 int is_nontrivial(const char *s) {
     if (!s)
         return 0;
-    while (*s)
-        if (!isspace(*s++))
-            return 1;
+    while (*s) {
+        if (!isspace(*s))
+            return *s != '#';
+        ++s;
+    }
     return 0;
 }
 

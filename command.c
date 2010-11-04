@@ -319,6 +319,9 @@ argument_t* parse_argument(parse_context_t *cxt) {
         } else if (!quoted && (c <= ' ' || c == '|' || c == '<' || c == '>' || c == '&' || c == ')' || c == '`')) {
             parser_skip_ws(cxt);
             break;
+        } else if (!quoted && c == '#') {
+            cxt->position = cxt->length;
+            break;
         } else {
             string_append_char(tmp, parser_consume(cxt));
         }
