@@ -18,6 +18,6 @@ int yas_readline_is_busy();
 void yas_readline_pre_signal();
 void yas_readline_post_signal();
 
-char* yas_readline(const char *prompt);
+char* yas_readline(const char *prompt, int *eof);
 
 #endif /* _INPUT_H_ */

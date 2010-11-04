@@ -96,8 +96,9 @@ int main(int argc, char **argv) {
     (void) argv;
     tasklist = task_list_new();
     install_sigchld_handler();
-    while (1) {
-        char *line = yas_readline("yas> ");
+    int eof = 0;
+    while (!eof) {
+        char *line = yas_readline("yas> ", &eof);
         if (is_nontrivial(line)) {
             size_t line_sz = strlen(line);
             command_t *command = command_create(line, line_sz);
