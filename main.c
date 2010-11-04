@@ -69,7 +69,6 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
         if (task_get_pid(task) == info->si_pid) {
             task_list_remove(tasklist, i);
             yas_readline_pre_signal();
-            // TODO: use clok or getrusage to compute average CPU load
             struct rusage ru;
             getrusage(RUSAGE_CHILDREN, &ru);
             long long utime = timeval_diff_millis(&ru.ru_utime, &yas_ru.ru_utime);

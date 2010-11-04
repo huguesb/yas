@@ -348,7 +348,7 @@ command_t* command_create(const char *str, size_t sz) {
     cxt.substitution = 0;
     command_t* cmd = parse_command_line(&cxt);
     if (cxt.error) {
-        fprintf(stderr, "syntax error @ %u\n", cxt.position);
+        fprintf(stderr, "syntax error @ %zu\n", cxt.position);
     }
     return cmd;
 }
