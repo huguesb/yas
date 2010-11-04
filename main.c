@@ -22,10 +22,6 @@
 #include <ctype.h>
 #include <signal.h>
 
-#ifdef YAS_USE_READLINE
-#include <readline/readline.h>
-#endif
-
 int get_cpu_count() {
     FILE *f = popen("cat /proc/cpuinfo | grep processor | wc -l", "r");
     char buffer[16];
@@ -62,17 +58,16 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
         task_t *task = task_list_get_task(tasklist, i);
         if (task_get_pid(task) == info->si_pid) {
             task_list_remove(tasklist, i);
+            yas_readline_pre_signal();
             fprintf(stderr,
-                    "\r[%u] %s after %lli ms\n",
+                    "[%u] %s after %lli ms\n",
                     info->si_pid,
                     sigchld_reason(info->si_code),
                     task_get_elapsed_millis(task));
             fflush(stderr);
             // TODO: move that call in a readline event hook
             // TODO: achieve similar effect for non-readline input
-#ifdef YAS_USE_READLINE
-            rl_forced_update_display();
-#endif
+            yas_readline_post_signal();
             break;
         }
     }

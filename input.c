@@ -23,7 +23,48 @@
 #include <readline/history.h>
 #endif
 
+static int _yas_readline_busy = 0;
+static int _yas_readline_setup_done = 0;
+
+static void yas_readline_setup() {
+    if (_yas_readline_setup_done)
+        return;
+    _yas_readline_setup_done = 1;
+#ifdef YAS_USE_READLINE
+    
+#else
+    
+#endif
+}
+
+int yas_readline_is_busy() {
+    return _yas_readline_busy;
+}
+
+void yas_readline_pre_signal() {
+    if (!_yas_readline_busy)
+        return;
+#ifdef YAS_USE_READLINE
+    fprintf(stdout, "\r");
+    fflush(stdout);
+#else
+    
+#endif
+}
+
+void yas_readline_post_signal() {
+    if (!_yas_readline_busy)
+        return;
+#ifdef YAS_USE_READLINE
+    rl_forced_update_display();
+#else
+    
+#endif
+}
+
 char* yas_readline(const char *prompt) {
+    _yas_readline_busy = 1;
+    yas_readline_setup();
 #ifdef YAS_USE_READLINE
     char *s = readline(prompt);
     if (s && *s)
@@ -31,6 +72,7 @@ char* yas_readline(const char *prompt) {
     /* NOTE : If yas_malloc/yas_free were to diverge from std malloc/free it
      will be necessary to yas_alloc a new buffer here and free the old one
      after having copied content from old to new for external consistency */
+    _yas_readline_busy = 0;
     return s;
 #else
     printf("%s", prompt);
@@ -45,13 +87,16 @@ char* yas_readline(const char *prompt) {
         if (fgets(buffer + offset, buffer_sz - offset, stdin) == NULL) {
             if (offset <= 0) {
                 yas_free(buffer);
+                _yas_readline_busy = 0;
                 return 0;
             }
+            _yas_readline_busy = 0;
             return buffer;
         }
         offset += strlen(buffer + offset);
         if (offset && buffer[offset - 1] == '\n') {
             buffer[offset - 1] = '\0';
+            _yas_readline_busy = 0;
             return buffer;
         }
     }
