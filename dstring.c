@@ -59,11 +59,15 @@ string_t* string_from_cstrn(const char *str, size_t n) {
 }
 
 void string_destroy(string_t *s) {
+    if (!s)
+        return;
     yas_free(s->data);
     yas_free(s);
 }
 
 void string_clear(string_t *s) {
+    if (!s)
+        return;
     s->size = 0;
 }
 
@@ -76,16 +80,22 @@ char* string_get_cstr(const string_t *s) {
 }
 
 char* string_get_cstr_copy(const string_t *s) {
+    if (!s || !s->size || !s->data)
+        return 0;
     char *str = (char*)yas_malloc((s->size + 1) * sizeof(char));
     strcpy(str, s->data);
     return str;
 }
 
 void string_append_string(string_t *dst, const string_t *src) {
+    if (!dst || !src)
+        return;
     string_append_cstrn(dst, src->data, src->size);
 }
 
 void string_append_char(string_t *dst, char c) {
+    if (!dst)
+        return;
     string_grow(dst, 1);
     dst->data[dst->size++] = c;
     dst->data[dst->size] = 0;
@@ -96,8 +106,21 @@ void string_append_cstr(string_t *dst, const char *str) {
 }
 
 void string_append_cstrn(string_t *dst, const char *str, size_t n) {
+    if (!dst || !str || !n)
+        return;
     string_grow(dst, n);
     strncpy(dst->data + dst->size, str, n);
     dst->size += n;
     dst->data[dst->size] = 0;
+}
+
+void string_shrink(string_t *s, size_t n) {
+    if (!s)
+        return;
+    if (s->size > n)
+        s->size -= n;
+    else
+        s->size = 0;
+    if (s->data)
+        s->data[s->size] = 0;
 }
