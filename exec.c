@@ -186,9 +186,11 @@ int exec_setup_redir(command_t *command, exec_context_t *cxt) {
 int exec_builtin(argv_t *argv, exec_context_t *cxt) {
     size_t n = argv_get_argc(argv);
     char **d = argv_get_argv(argv);
+    if (!n || !d)
+        return 1;
     /* try builtin commands */
     if (!strcmp(*d, "cd")) {
-        if (n) {
+        if (n > 1) {
             if (chdir(d[1]))
                 fprintf(stderr, "No such directory : %s\n", d[1]);
         } else {
