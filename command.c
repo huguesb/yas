@@ -217,7 +217,7 @@ command_t* parse_command(parse_context_t *cxt) {
                 if (c == '&')
                     cmd->flags |= COMMAND_IS_BACKGROUND;
                 break;
-            } else if (c == ')' || c == '`') {
+            } else if (c == ')' || (c == '`' && cxt->substitution)) {
                 break;
             } else if (c == '<') {
                 if (!cmd->in) {
@@ -349,6 +349,8 @@ command_t* command_create(const char *str, size_t sz) {
     command_t* cmd = parse_command_line(&cxt);
     if (cxt.error) {
         fprintf(stderr, "syntax error @ %zu\n", cxt.position);
+    } else if (cxt.position < cxt.length) {
+        fprintf(stderr, "input left : %s\n", cxt.data + cxt.position);
     }
     return cmd;
 }
