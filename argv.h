@@ -16,6 +16,8 @@
 
 #include <stddef.h>
 
+char* get_homedir();
+
 typedef struct _argv argv_t;
 
 argv_t* argv_new();

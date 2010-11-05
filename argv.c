@@ -21,6 +21,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+char* get_homedir() {
+    glob_t globs;
+    int err = glob("~/",
+                   GLOB_TILDE_CHECK | GLOB_ERR,
+                   NULL, &globs);
+    if (err) {
+        return 0;
+    } else if (globs.gl_pathc != 1) {
+        globfree(&globs);
+        return 0;
+    }
+    return *globs.gl_pathv;
+}
+
 struct _argv {
     size_t n;
     size_t a;
@@ -78,8 +92,8 @@ int argv_add_split(argv_t *argv, const char *s) {
                 
                 glob_t globs;
                 int err = glob(tmp,
-                                GLOB_NOMAGIC | GLOB_TILDE_CHECK | GLOB_ERR,
-                                NULL, &globs);
+                               GLOB_NOMAGIC | GLOB_TILDE_CHECK | GLOB_ERR,
+                               NULL, &globs);
                 if (err) {
                     fprintf(stderr, "Wildcard/tilde expansion failed.\n");
                     fprintf(stderr, "%s\n", tmp);

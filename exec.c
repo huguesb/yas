@@ -194,8 +194,13 @@ int exec_builtin(argv_t *argv, exec_context_t *cxt) {
             if (chdir(d[1]))
                 fprintf(stderr, "No such directory : %s\n", d[1]);
         } else {
-            /* TODO : find home dir */
-            chdir("");
+            char *homedir = get_homedir();
+            if (homedir) {
+                chdir(homedir);
+                free(homedir);
+            } else {
+                fprintf(stderr, "Unable to find home directory\n");
+            }
         }
         return 0;
     } else if (!strcmp(*d, "exit")) {
