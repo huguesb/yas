@@ -14,6 +14,8 @@
 #ifndef _INPUT_H_
 #define _INPUT_H_
 
+#define YAS_PROMPT "yas> "
+
 int yas_readline_is_busy();
 void yas_readline_pre_signal();
 void yas_readline_post_signal();
