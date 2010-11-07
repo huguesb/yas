@@ -19,26 +19,13 @@
 */
 
 #include "memory.h"
+#include "util.h"
 
 #include <ctype.h>
 #include <glob.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-char* get_homedir() {
-    glob_t globs;
-    int err = glob("~/",
-                   GLOB_TILDE_CHECK | GLOB_ERR,
-                   NULL, &globs);
-    if (err) {
-        return 0;
-    } else if (globs.gl_pathc != 1) {
-        globfree(&globs);
-        return 0;
-    }
-    return *globs.gl_pathv;
-}
 
 /*!
     \struct argv_t

@@ -22,6 +22,7 @@
 #include "command.h"
 #include "dstring.h"
 #include "argv.h"
+#include "util.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -34,21 +35,6 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-
-char* get_pwd() {
-    char *buffer = 0;
-    size_t size = 16;
-    do {
-        size *= 2;
-        buffer = (char*)yas_realloc(buffer, size * sizeof(char));
-        getcwd(buffer, size);
-    } while (errno == ERANGE);
-    if (errno) {
-        yas_free(buffer);
-        buffer = 0;
-    }
-    return buffer;
-}
 
 typedef struct {
     task_list_t *tasklist;
