@@ -205,7 +205,7 @@ int exec_builtin(argv_t *argv, exec_context_t *cxt) {
         return 0;
     } else if (!strcmp(*d, "exit")) {
         exit(0);
-    } else if (!strcmp(*d, "list_tasks")) {
+    } else if (!strcmp(*d, "list_tasks") || !strcmp(*d, "liste_ps")) {
         size_t i, n = task_list_get_size(cxt->tasklist);
         for (i = 0; i < n; ++i)
             task_inspect(task_list_get_task(cxt->tasklist, i));
