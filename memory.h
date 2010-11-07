@@ -14,6 +14,11 @@
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
 
+/*!
+    \file memory.h
+    \brief Definition of memory allocation wrappers.
+*/
+
 #include <stddef.h>
 
 void* yas_malloc(size_t sz);

@@ -13,6 +13,11 @@
 
 #include "input.h"
 
+/*!
+    \file input.c
+    \brief Implementation of input abstraction layer.
+*/
+
 #include "memory.h"
 #include "dstring.h"
 
@@ -54,19 +59,15 @@ static int _yas_readline_busy = 0;
 static void yas_readline_setup() {
     _yas_readline_busy = 1;
 #ifdef YAS_USE_READLINE
+    /* Install EOF handler */
     _yas_readline_at_end = 0;
     rl_getc_function = yas_rl_getc;
 #else
-    struct termios tattr;
-
-    /* Make sure stdin is a terminal.  */
-    if (!isatty (STDIN_FILENO)) {
-        /*
-        fprintf (stderr, "Not a terminal.\n");
-        exit (EXIT_FAILURE);
-        */
+    /* If stdin is a not a terminal no specific setup.  */
+    if (!isatty (STDIN_FILENO))
         return;
-    }
+
+    struct termios tattr;
 
     /* Save the terminal attributes so we can restore them later.  */
     tcgetattr (STDIN_FILENO, &saved_attributes);
@@ -82,17 +83,30 @@ static void yas_readline_setup() {
 
 static void yas_readline_cleanup() {
 #ifdef YAS_USE_READLINE
+    /* Remove EOF handler */
     rl_getc_function = rl_getc;
 #else
+    if (!isatty (STDIN_FILENO))
+        return;
+
+    /* Restore terminal settings. */
     tcsetattr (STDIN_FILENO, TCSANOW, &saved_attributes);
 #endif
     _yas_readline_busy = 0;
 }
 
+/*!
+    \return Whether yas_readline is waiting for input
+    Might be useful in signal handlers.
+*/
 int yas_readline_is_busy() {
     return _yas_readline_busy;
 }
 
+/*!
+    \brief Pre-signal saving.
+    To be called at the beginning of a signal handler if the display will be affected.
+*/
 void yas_readline_pre_signal() {
     if (!_yas_readline_busy)
         return;
@@ -105,6 +119,10 @@ void yas_readline_pre_signal() {
 #endif
 }
 
+/*!
+    \brief Post-signal restoration.
+    To be called at the end of a signal handler if the display has been affected.
+*/
 void yas_readline_post_signal() {
     if (!_yas_readline_busy)
         return;
@@ -116,6 +134,14 @@ void yas_readline_post_signal() {
 #endif
 }
 
+/*!
+    \brief Input entry point
+    \param prompt Command prompt string
+    \param eof If non null, will be set to a boolean value indicating whether EOF was reached
+    \return A yas_malloc'ed string containing user input, null in case of error.
+    This function is a wrapper around readline (when available) or a basic
+    terminal input (or any other input methods that might be added in the future).
+*/
 char* yas_readline(const char *prompt, int *eof) {
     if (eof)
         *eof = 0;

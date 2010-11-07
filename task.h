@@ -14,6 +14,11 @@
 #ifndef _TASK_H_
 #define _TASK_H_
 
+/*!
+    \file task.h
+    \brief Definition of task_t
+*/
+
 #include "command.h"
 #include "argv.h"
 

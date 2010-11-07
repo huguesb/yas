@@ -13,8 +13,22 @@
 
 #include "dstring.h"
 
+/*!
+    \file string.c
+    \brief Implementation of string_t
+*/
+
 #include "memory.h"
 #include <string.h>
+
+/*!
+    \struct string_t
+    \brief A dynamically-sized string
+    This struct and the related string_* methods remedy one of the major
+    deficiencies of the C standard library. It is neither fully-featured nor
+    aggressively optimized but just provide just enough flexibility and speed
+    for the few cases where YAS needs dynamic strings.
+*/
 
 struct _string {
     size_t size;

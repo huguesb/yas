@@ -13,6 +13,11 @@
 
 #include "exec.h"
 
+/*!
+    \file exec.c
+    \brief Implementation of command execution
+*/
+
 #include "memory.h"
 #include "command.h"
 #include "dstring.h"

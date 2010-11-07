@@ -14,6 +14,11 @@
 #ifndef _EXEC_H_
 #define _EXEC_H_
 
+/*!
+    \file exec.h
+    \brief Definition of command execution
+*/
+
 #include "command.h"
 #include "task.h"
 

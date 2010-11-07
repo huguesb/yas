@@ -11,6 +11,11 @@
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 *******************************************************************************/
 
+/*!
+    \file main.c
+    \brief YAS main() function
+*/
+
 #include "memory.h"
 #include "input.h"
 #include "command.h"

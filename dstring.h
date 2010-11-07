@@ -14,6 +14,11 @@
 #ifndef _DSTRING_H_
 #define _DSTRING_H_
 
+/*!
+    \file string.h
+    \brief Definition of string_t
+*/
+
 #include <stddef.h>
 
 typedef struct _string string_t;

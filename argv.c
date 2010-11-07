@@ -13,6 +13,11 @@
 
 #include "argv.h"
 
+/*!
+    \file argv.c
+    \brief Implementation of argv_t
+*/
+
 #include "memory.h"
 
 #include <ctype.h>
@@ -35,6 +40,10 @@ char* get_homedir() {
     return *globs.gl_pathv;
 }
 
+/*!
+    \struct argv_t
+    \brief Evaluated string representation of a command
+*/
 struct _argv {
     size_t n;
     size_t a;

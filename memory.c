@@ -17,6 +17,11 @@
 #include <stdlib.h>
 #include <errno.h>
 
+/*!
+    \file memory.c
+    \brief Implementation of memory allocation wrappers.
+*/
+
 static yas_mem_error_handler_t __yas_mem_error_handler = NULL;
 
 void yas_mem_error() {

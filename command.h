@@ -14,6 +14,11 @@
 #ifndef _COMMAND_H_
 #define _COMMAND_H_
 
+/*!
+    \file command.h
+    \brief Definition of command_t and argument_t
+*/
+
 #include <stddef.h>
 
 typedef struct _command command_t;

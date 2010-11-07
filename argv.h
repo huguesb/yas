@@ -14,6 +14,11 @@
 #ifndef _ARGV_H_
 #define _ARGV_H_
 
+/*!
+    \file argv.h
+    \brief Definition of argv_t
+*/
+
 #include <stddef.h>
 
 char* get_homedir();
