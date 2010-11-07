@@ -26,6 +26,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
+#include <time.h>
+#include <unistd.h>
 #include <sys/resource.h>
 
 int get_cpu_count() {
@@ -52,16 +54,7 @@ static const char* sigchld_reason(int code) {
     return "";
 }
 
-static struct rusage yas_ru;
 static task_list_t *tasklist = 0;
-
-static long long timeval_diff_millis(const struct timeval *current,
-                                     const struct timeval *last) {
-    long long diff = current->tv_sec - last->tv_sec;
-    diff *= 1000;
-    diff += (current->tv_usec - last->tv_usec) / 1000;
-    return diff;
-}
 
 static void sigchld_handler(int sig, siginfo_t *info, void *context) {
     (void)context;
@@ -74,12 +67,9 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
         if (task_get_pid(task) == info->si_pid) {
             task_list_remove(tasklist, i);
             yas_readline_pre_signal();
-            struct rusage ru;
-            getrusage(RUSAGE_CHILDREN, &ru);
-            long long utime = timeval_diff_millis(&ru.ru_utime, &yas_ru.ru_utime);
-            long long stime = timeval_diff_millis(&ru.ru_stime, &yas_ru.ru_stime);
+            long long utime = info->si_utime;
+            long long stime = info->si_stime;
             long long wall = task_get_elapsed_millis(task);
-            yas_ru = ru;
             fprintf(stderr,
                     "[%u] %s after %lli ms [usr=%llu, sys=%llu, cpu=%.2lf%%]\n",
                     info->si_pid,
@@ -87,7 +77,10 @@ static void sigchld_handler(int sig, siginfo_t *info, void *context) {
                     wall,
                     utime,
                     stime,
-                    ((double)(utime + stime) / (double)(wall * get_cpu_count())));
+                    wall > 0
+                        ? ((double)(utime + stime) * 1000
+                            / (double)(wall * get_cpu_count() * sysconf(_SC_CLK_TCK)))
+                        : 0.0);
             fflush(stderr);
             yas_readline_post_signal();
             break;
@@ -121,7 +114,6 @@ int is_nontrivial(const char *s) {
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
-    getrusage(RUSAGE_CHILDREN, &yas_ru);
     tasklist = task_list_new();
     install_sigchld_handler();
     int eof = 0;
