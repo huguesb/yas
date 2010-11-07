@@ -69,6 +69,8 @@ char** argv_get_argv(argv_t *argv) {
 }
 
 int argv_add(argv_t *argv, const char *s) {
+    if (!argv || !s)
+        return 0;
     argv_grow(argv, 1);
     argv->d[argv->n] = (char*)yas_malloc((strlen(s)+1) * sizeof(char));
     strcpy(argv->d[argv->n], s);
@@ -77,6 +79,8 @@ int argv_add(argv_t *argv, const char *s) {
 }
 
 int argv_add_split(argv_t *argv, const char *s) {
+    if (!argv || !s)
+        return 0;
     /* field splitting & glob expansion */
     const char *last = s, *current = s;
     do {

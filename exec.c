@@ -51,8 +51,10 @@ char* eval_argument(argument_t *argument, exec_context_t *cxt) {
     int type = argument_type(argument);
     if (type == ARGTYPE_STRING) {
         char *s = argument_get_string(argument);
-        val = (char*)yas_malloc((strlen(s) + 1) * sizeof(char));
-        strcpy(val, s);
+        if (s) {
+            val = (char*)yas_malloc((strlen(s) + 1) * sizeof(char));
+            strcpy(val, s);
+        }
     } else if (type == ARGTYPE_VARIABLE) {
         char *env = getenv(argument_get_variable(argument));
         if (env) {

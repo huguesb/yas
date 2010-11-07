@@ -55,19 +55,17 @@ char* get_homedir() {
 }
 
 char* get_pwd() {
+    char *pwd = 0;
     char *buffer = 0;
     size_t size = 16;
     do {
         size *= 2;
         buffer = (char*)yas_realloc(buffer, size * sizeof(char));
-        if (getcwd(buffer, size)==buffer)
-            break;
-    } while (errno == ERANGE);
-    if (errno) {
+        pwd = getcwd(buffer, size);
+    } while (!pwd && errno == ERANGE);
+    if (!pwd)
         yas_free(buffer);
-        buffer = 0;
-    }
-    return buffer;
+    return pwd;
 }
 
 char* get_username() {

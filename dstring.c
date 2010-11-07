@@ -74,9 +74,11 @@ string_t* string_from_cstrn(const char *str, size_t n) {
 
 string_t* string_from_cstr_own(char *str) {
     string_t *s = string_new();
-    s->size = strlen(str);
-    s->alloc = s->size;
-    s->data = str;
+    if (str) {
+        s->size = strlen(str);
+        s->alloc = s->size;
+        s->data = str;
+    }
     return s;
 }
 
@@ -124,6 +126,8 @@ void string_append_char(string_t *dst, char c) {
 }
 
 void string_append_cstr(string_t *dst, const char *str) {
+    if (!dst || !str)
+        return;
     string_append_cstrn(dst, str, strlen(str));
 }
 
