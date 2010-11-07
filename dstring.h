@@ -15,12 +15,19 @@
 #define _DSTRING_H_
 
 /*!
-    \file string.h
+    \file dstring.h
     \brief Definition of string_t
 */
 
 #include <stddef.h>
 
+/*!
+    \brief A dynamically-sized string
+    This struct and the related string_* methods remedy one of the major
+    deficiencies of the C standard library. It is neither fully-featured nor
+    aggressively optimized but just provide just enough flexibility and speed
+    for the few cases where YAS needs dynamic strings.
+*/
 typedef struct _string string_t;
 
 string_t* string_new();

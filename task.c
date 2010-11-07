@@ -25,10 +25,6 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 
-/*!
-    \struct task_t
-    \brief Informations about a background task
-*/
 struct _task {
     pid_t pid;
     argv_t *argv;
@@ -150,11 +146,6 @@ void task_inspect(task_t *task) {
 }
 
 /******************************************************************************/
-
-/*!
-    \struct task_list_t
-    \brief List of task_t
-*/
 
 struct _task_list {
     size_t n;

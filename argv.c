@@ -27,10 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*!
-    \struct argv_t
-    \brief Evaluated string representation of a command
-*/
 struct _argv {
     size_t n;
     size_t a;

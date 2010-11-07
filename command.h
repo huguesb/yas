@@ -21,7 +21,14 @@
 
 #include <stddef.h>
 
+/*!
+    \brief Parsed representation of a command line
+*/
 typedef struct _command command_t;
+
+/*!
+    \brief Parsed representation of a command argument
+*/
 typedef struct _argument argument_t;
 
 command_t* command_create(const char *str, size_t sz);

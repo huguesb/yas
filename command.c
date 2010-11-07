@@ -44,10 +44,6 @@ void indent_printf(size_t indent, const char *fmt, ...) {
     string = '"' ([^"] | '\' '"')* '"' | ([^"<>|&] | '\' ["<>|&])+
 */
 
-/*!
-    \struct command_t
-    \brief Parsed representation of a command line
-*/
 struct _command {
     int flags;
     size_t argc;
@@ -61,10 +57,6 @@ enum command_flags {
     COMMAND_IS_PIPECHAIN = 2
 };
 
-/*!
-    \struct argument_t
-    \brief Parsed representation of a command argument
-*/
 struct _argument {
     int type;
     size_t n;

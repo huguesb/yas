@@ -21,6 +21,9 @@
 
 #include <stddef.h>
 
+/*!
+    \brief Evaluated string representation of a command
+*/
 typedef struct _argv argv_t;
 
 argv_t* argv_new();

@@ -24,6 +24,9 @@
 
 #include <sys/types.h>
 
+/*!
+    \brief Informations about a background task
+*/
 typedef struct _task task_t;
 
 task_t* task_new();
@@ -41,6 +44,9 @@ long long task_get_elapsed_micros(task_t *task);
 
 void task_inspect(task_t *task);
 
+/*!
+    \brief List of task_t
+*/
 typedef struct _task_list task_list_t;
 
 task_list_t* task_list_new();
