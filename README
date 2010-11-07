@@ -23,7 +23,7 @@ II. USE
 	
 III. DOCUMENTATION
 	
-	The documentation is provided as doxygen (see ./Doc/html/index.html).
+	The documentation is provided as doxygen (see ./doc/html/index.html).
 	You can regenerate it in case it has evolved or isn't present by doing :
 	$ doxygen Doxyfile
 	
@@ -31,7 +31,8 @@ III. DOCUMENTATION
 	
 IV. POSSIBLE IMPROVEMENTS
 	
-	# error reporting in exec.c
+	# better error reporting (exec.c)
+	# completion of executables in $PATH
 	# management of user-defined variables
 	# management of special variables ($0..$n $? $0)
 	# complex redirections (>> 2>1 &>)
