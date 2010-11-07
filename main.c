@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
     install_sigchld_handler();
     int eof = 0;
     while (!eof) {
-        char *line = yas_readline("yas> ", &eof);
+        char *line = yas_readline(YAS_PROMPT, &eof);
         if (is_nontrivial(line)) {
             size_t line_sz = strlen(line);
             command_t *command = command_create(line, line_sz);

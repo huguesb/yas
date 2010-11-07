@@ -43,6 +43,13 @@ enum argument_type {
     ARGTYPE_QUOTED = 0x8000
 };
 
+enum error_type {
+    ERRTYPE_DUPLICATED_INPUT,
+    ERRTYPE_DUPLICATED_OUTPUT,
+    ERRTYPE_UNMATCHING_DELIMITERS,
+    ERRTYPE_UNKNOWN_SYNTAX
+};
+
 void argument_destroy(argument_t *argument);
 void argument_inspect(argument_t *argument, size_t indent);
 

@@ -12,6 +12,7 @@
 *******************************************************************************/
 
 #include "command.h"
+#include "input.h"
 
 #include "memory.h"
 #include "dstring.h"
@@ -19,6 +20,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 void indent_printf(size_t indent, const char *fmt, ...) {
     va_list va;
@@ -226,7 +228,7 @@ command_t* parse_command(parse_context_t *cxt) {
                     if (cmd->in)
                         continue;
                 }
-                cxt->error = 1;
+                cxt->error = ERRTYPE_DUPLICATED_INPUT;
                 break;
             } else if (c == '>') {
                 if (!cmd->out) {
@@ -235,7 +237,7 @@ command_t* parse_command(parse_context_t *cxt) {
                     if (cmd->out)
                         continue;
                 }
-                cxt->error = 1;
+                cxt->error = ERRTYPE_DUPLICATED_OUTPUT;
                 break;
             }
             long_break = 0;
@@ -295,9 +297,8 @@ argument_t* parse_argument(parse_context_t *cxt) {
                     if (c == '`')
                         cxt->substitution = 0;
                 } else {
-                    /* TODO: report syntax error */
                     fprintf(stderr, "%c != %c\n", c, pc);
-                    cxt->error = 1;
+                    cxt->error = ERRTYPE_UNMATCHING_DELIMITERS;
                 }
             } else if (isalnum(c) || (c == '_')) {
                 while (!parser_at_end(cxt) && (isalnum(c) || (c == '_'))) {
@@ -313,8 +314,8 @@ argument_t* parse_argument(parse_context_t *cxt) {
                     arg->type |= ARGTYPE_QUOTED;
                 p = argument_add_sub(p, arg);
             } else {
-                /* TODO: report syntax error */
-                cxt->error = 1;
+                /* TODO: report a deeper analysis of the error */
+                cxt->error = ERRTYPE_UNKNOWN_SYNTAX;
             }
         } else if (!quoted && (c <= ' ' || c == '|' || c == '<' || c == '>' || c == '&' || c == ')' || c == '`')) {
             parser_skip_ws(cxt);
@@ -348,7 +349,25 @@ command_t* command_create(const char *str, size_t sz) {
     cxt.substitution = 0;
     command_t* cmd = parse_command_line(&cxt);
     if (cxt.error) {
-        fprintf(stderr, "syntax error @ %zu\n", cxt.position);
+	size_t i;
+	for (i = 0; i < cxt.position+strlen(YAS_PROMPT); ++i) 
+	    fprintf(stderr, " ");
+        fprintf(stderr, "^\nsyntax error @ %zu : ", cxt.position);
+	
+        switch (cxt.error) {
+        case ERRTYPE_DUPLICATED_INPUT:
+            fprintf(stderr, "Duplicated input\n");
+            break;
+	case ERRTYPE_DUPLICATED_OUTPUT:
+            fprintf(stderr, "Duplicated output\n");
+            break;
+	case ERRTYPE_UNMATCHING_DELIMITERS:
+            fprintf(stderr, "Unmatching delimiters\n");
+            break;
+	default:
+	    fprintf(stderr, "Unknown\n");
+        }
+	
     } else if (cxt.position < cxt.length) {
         fprintf(stderr, "input left : %s\n", cxt.data + cxt.position);
     }
