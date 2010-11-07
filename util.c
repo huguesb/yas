@@ -60,7 +60,8 @@ char* get_pwd() {
     do {
         size *= 2;
         buffer = (char*)yas_realloc(buffer, size * sizeof(char));
-        getcwd(buffer, size);
+        if (getcwd(buffer, size)==buffer)
+            break;
     } while (errno == ERANGE);
     if (errno) {
         yas_free(buffer);

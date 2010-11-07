@@ -26,7 +26,7 @@ typedef struct _string string_t;
 string_t* string_new();
 string_t* string_from_cstr(const char *str);
 string_t* string_from_cstrn(const char *str, size_t n);
-string_t* string_from_cstr_own(const char *str);
+string_t* string_from_cstr_own(char *str);
 
 void string_destroy(string_t *s);
 

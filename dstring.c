@@ -72,7 +72,7 @@ string_t* string_from_cstrn(const char *str, size_t n) {
     return s;
 }
 
-string_t* string_from_cstr_own(const char *str) {
+string_t* string_from_cstr_own(char *str) {
     string_t *s = string_new();
     s->size = strlen(str);
     s->alloc = s->size;
