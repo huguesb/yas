@@ -25,4 +25,7 @@ void yas_readline_post_signal();
 
 char* yas_readline(const char *prompt, int *eof);
 
+int yas_history_load(const char *filename);
+int yas_history_save(const char *filename);
+
 #endif /* _INPUT_H_ */
