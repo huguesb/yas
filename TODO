@@ -1,10 +1,13 @@
- * address all TODOs
- * fix %u for 64bit (ensibm...)
+ * documentation (README + doxy)
+ * better error reporting in exec.c
  * tests
+ * check background task CPU utilization (looks kinda wrong...)
 
 ?
- * >>
+ * user variables
+ * special variables ($0..$n $? $@)
+ * >> 2>1 &> ... (general redir revamp)
  * && ||
  * arith expansion
- * 2>1 &> ...
+ * logic, control flow, functions...
 
