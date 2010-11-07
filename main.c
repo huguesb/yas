@@ -17,8 +17,10 @@
 */
 
 #include "memory.h"
+#include "dstring.h"
 #include "input.h"
 #include "command.h"
+#include "argv.h"
 #include "exec.h"
 
 #include <stdio.h>
@@ -114,8 +116,14 @@ int is_nontrivial(const char *s) {
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
+    
     tasklist = task_list_new();
     install_sigchld_handler();
+    
+    string_t *history = string_from_cstr_own(get_homedir());
+    string_append_cstr(history, ".yas_history");
+    yas_history_load(string_get_cstr(history));
+    
     int eof = 0;
     while (!eof) {
         char *line = yas_readline("yas> ", &eof);
@@ -131,10 +139,13 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "%s\n", command_error_string());
             } else {
                 /* command_inspect(command, 0); */
-                exec_command(command, tasklist);
+                int ret = exec_command(command, tasklist);
                 command_destroy(command);
+                if (ret == EXEC_EXIT)
+                    break;
             }
         }
     }
+    yas_history_save(string_get_cstr(history));
     return 0;
 }

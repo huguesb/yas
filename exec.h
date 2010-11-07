@@ -22,6 +22,12 @@
 #include "command.h"
 #include "task.h"
 
-void exec_command(command_t *command, task_list_t *tasklist);
+enum {
+    EXEC_OK,
+    EXEC_EXIT,
+    EXEC_ERROR
+};
+
+int exec_command(command_t *command, task_list_t *tasklist);
 
 #endif /* _EXEC_H_ */

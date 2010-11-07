@@ -188,7 +188,9 @@ int exec_setup_redir(command_t *command, exec_context_t *cxt) {
     return 0;
 }
 
-int exec_builtin(argv_t *argv, exec_context_t *cxt) {
+int exec_builtin(argv_t *argv, exec_context_t *cxt, int *exit) {
+    if (exit)
+        *exit = 0;
     size_t n = argv_get_argc(argv);
     char **d = argv_get_argv(argv);
     if (!n || !d)
@@ -209,7 +211,10 @@ int exec_builtin(argv_t *argv, exec_context_t *cxt) {
         }
         return 0;
     } else if (!strcmp(*d, "exit")) {
-        exit(0);
+        if (exit) {
+            *exit = 1;
+            return 0;
+        }
     } else if (!strcmp(*d, "list_tasks") || !strcmp(*d, "liste_ps")) {
         size_t i, n = task_list_get_size(cxt->tasklist);
         for (i = 0; i < n; ++i)
@@ -225,7 +230,7 @@ void exec_internal(command_t *command, exec_context_t *cxt) {
         exit(1);
     if (exec_setup_redir(command, cxt))
         exit(1);
-    if (!exec_builtin(argv, cxt))
+    if (!exec_builtin(argv, cxt, 0))
         exit(0);
     /* exec external command */
     char **d = argv_get_argv(argv);
@@ -272,7 +277,7 @@ void exec_pipechain(command_t *command, exec_context_t *cxt) {
             waitpid(pid[i], NULL, 0);
 }
 
-void exec_command(command_t *command, task_list_t *tasklist) {
+int exec_command(command_t *command, task_list_t *tasklist) {
     exec_context_t cxt;
     cxt.tasklist = tasklist;
     if (command_is_pipechain(command)) {
@@ -281,10 +286,13 @@ void exec_command(command_t *command, task_list_t *tasklist) {
         argv_t *argv = argv_new();
         if (argv_eval(argv, command, &cxt)) {
             argv_destroy(argv);
-            return;
+            return EXEC_ERROR;
         }
-        if (!exec_builtin(argv, &cxt)) {
+        int xit;
+        if (!exec_builtin(argv, &cxt, &xit)) {
             argv_destroy(argv);
+            if (xit)
+                return EXEC_EXIT;
         } else {
             task_t *task = task_new();
             pid_t pid = fork();
@@ -309,4 +317,5 @@ void exec_command(command_t *command, task_list_t *tasklist) {
             }
         }
     }
+    return EXEC_OK;
 }
