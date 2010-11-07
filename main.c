@@ -121,14 +121,17 @@ int main(int argc, char **argv) {
     install_sigchld_handler();
     int eof = 0;
     while (!eof) {
-        char *line = yas_readline(YAS_PROMPT, &eof);
+        char *line = yas_readline("yas> ", &eof);
         if (is_nontrivial(line)) {
             size_t line_sz = strlen(line);
             command_t *command = command_create(line, line_sz);
             yas_free(line);
             if (!command) {
-                /* TODO: better error report interface */
-                printf("syntax error.\n");
+                size_t i, n = command_error_position() + 5;
+                for (i = 0; i < n; ++i) 
+                    fprintf(stderr, " ");
+                fprintf(stderr, "^\nsyntax error @ %zu : ", command_error_position());
+                fprintf(stderr, "%s\n", command_error_string());
             } else {
                 /* command_inspect(command, 0); */
                 exec_command(command, tasklist);

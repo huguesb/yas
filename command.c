@@ -12,7 +12,6 @@
 *******************************************************************************/
 
 #include "command.h"
-#include "input.h"
 
 #include "memory.h"
 #include "dstring.h"
@@ -297,7 +296,6 @@ argument_t* parse_argument(parse_context_t *cxt) {
                     if (c == '`')
                         cxt->substitution = 0;
                 } else {
-                    fprintf(stderr, "%c != %c\n", c, pc);
                     cxt->error = ERRTYPE_UNMATCHING_DELIMITERS;
                 }
             } else if (isalnum(c) || (c == '_')) {
@@ -340,7 +338,15 @@ argument_t* parse_argument(parse_context_t *cxt) {
 
 /******************************************************************************/
 
+static size_t _command_error_position = 0;
+static string_t *_command_error_string = 0;
+
 command_t* command_create(const char *str, size_t sz) {
+    _command_error_position = (size_t)-1;
+    if (_command_error_string)
+        string_clear(_command_error_string);
+    else
+        _command_error_string = string_new();
     parse_context_t cxt;
     cxt.data = str;
     cxt.length = sz;
@@ -349,29 +355,37 @@ command_t* command_create(const char *str, size_t sz) {
     cxt.substitution = 0;
     command_t* cmd = parse_command_line(&cxt);
     if (cxt.error) {
-	size_t i;
-	for (i = 0; i < cxt.position+strlen(YAS_PROMPT); ++i) 
-	    fprintf(stderr, " ");
-        fprintf(stderr, "^\nsyntax error @ %zu : ", cxt.position);
-	
+        _command_error_position = cxt.position;
         switch (cxt.error) {
-        case ERRTYPE_DUPLICATED_INPUT:
-            fprintf(stderr, "Duplicated input\n");
-            break;
-	case ERRTYPE_DUPLICATED_OUTPUT:
-            fprintf(stderr, "Duplicated output\n");
-            break;
-	case ERRTYPE_UNMATCHING_DELIMITERS:
-            fprintf(stderr, "Unmatching delimiters\n");
-            break;
-	default:
-	    fprintf(stderr, "Unknown\n");
+            case ERRTYPE_DUPLICATED_INPUT:
+                string_append_cstr(_command_error_string, "Duplicated input");
+                break;
+            case ERRTYPE_DUPLICATED_OUTPUT:
+                string_append_cstr(_command_error_string, "Duplicated output");
+                break;
+            case ERRTYPE_UNMATCHING_DELIMITERS:
+                string_append_cstr(_command_error_string, "Unmatching delimiters");
+                break;
+            default:
+                string_append_cstr(_command_error_string, "Unknown");
+                break;
         }
-	
     } else if (cxt.position < cxt.length) {
-        fprintf(stderr, "input left : %s\n", cxt.data + cxt.position);
+        _command_error_position = cxt.position;
+        string_append_cstr(_command_error_string, "Input left : ");
+        string_append_cstr(_command_error_string, cxt.data + cxt.position);
+        command_destroy(cmd);
+        cmd = 0;
     }
     return cmd;
+}
+
+size_t command_error_position() {
+    return _command_error_position;
+}
+
+const char* command_error_string() {
+    return string_get_cstr(_command_error_string);
 }
 
 void command_destroy(command_t *command) {

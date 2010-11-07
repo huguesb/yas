@@ -23,6 +23,9 @@ command_t* command_create(const char *str, size_t sz);
 void command_destroy(command_t *command);
 void command_inspect(command_t *command, size_t indent);
 
+size_t command_error_position();
+const char* command_error_string();
+
 int command_argc(command_t *command);
 argument_t** command_argv(command_t *command);
 
