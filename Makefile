@@ -25,6 +25,7 @@ SOURCES       = memory.c \
 		argv.c \
 		task.c \
 		exec.c \
+		util.c \
 		main.c 
 OBJECTS       = memory.o \
 		dstring.o \
@@ -33,6 +34,7 @@ OBJECTS       = memory.o \
 		argv.o \
 		task.o \
 		exec.o \
+		util.o \
 		main.o
 DESTDIR       = 
 TARGET        = yas
@@ -51,6 +53,9 @@ clean: FORCE
 	-$(DEL_FILE) $(OBJECTS)
 
 ####### Compile
+
+util.o: util.c util.h
+	$(CC) -c $(CFLAGS) $(INCPATH) -o util.o util.c
 
 memory.o: memory.c memory.h
 	$(CC) -c $(CFLAGS) $(INCPATH) -o memory.o memory.c

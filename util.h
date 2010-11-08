@@ -11,27 +11,18 @@
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 *******************************************************************************/
 
-#ifndef _ARGV_H_
-#define _ARGV_H_
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
 /*!
-    \file argv.h
-    \brief Definition of argv_t
+    \file util.h
+    \brief Definition of several utility functions
 */
 
-#include <stddef.h>
+int get_cpu_count();
 
-typedef struct _argv argv_t;
+char* get_pwd();
+char* get_username();
+char* get_homedir();
 
-argv_t* argv_new();
-void argv_destroy(argv_t *argv);
-
-int argv_add(argv_t *argv, const char *s);
-int argv_add_split(argv_t *argv, const char *s);
-
-size_t argv_get_argc(argv_t *argv);
-char** argv_get_argv(argv_t *argv);
-
-void argv_inspect(argv_t *argv);
-
-#endif /* _ARGV_H_ */
+#endif /* _UTIL_H_ */

@@ -17,9 +17,12 @@
 */
 
 #include "memory.h"
+#include "dstring.h"
 #include "input.h"
 #include "command.h"
+#include "argv.h"
 #include "exec.h"
+#include "util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,14 +32,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/resource.h>
-
-int get_cpu_count() {
-    FILE *f = popen("cat /proc/cpuinfo | grep processor | wc -l", "r");
-    char buffer[16];
-    size_t size = fread(buffer, 1, 16, f);
-    pclose(f);
-    return size ? atoi(buffer) : 0;
-}
 
 static const char* sigchld_reason(int code) {
     if (code == CLD_EXITED)
@@ -111,30 +106,59 @@ int is_nontrivial(const char *s) {
     return 0;
 }
 
+string_t* get_prompt(string_t *s) {
+    if (!s)
+        s = string_new();
+    else
+        string_clear(s);
+    char *name = get_username();
+    char buffer[256];
+    gethostname(buffer, 256);
+    string_append_char(s, '[');
+    string_append_cstr(s, name ? name : "?");
+    string_append_char(s, '@');
+    string_append_cstr(s, buffer);
+    string_append_char(s, ' ');
+    string_append_cstr(s, get_pwd());
+    string_append_cstr(s, "]$ ");
+    return s;
+}
+
 int main(int argc, char **argv) {
     (void) argc;
     (void) argv;
+    
     tasklist = task_list_new();
     install_sigchld_handler();
+    
+    string_t *history = string_from_cstr_own(get_homedir());
+    string_append_cstr(history, ".yas_history");
+    yas_history_load(string_get_cstr(history));
+    
     int eof = 0;
+    string_t *prompt = 0;
     while (!eof) {
-        char *line = yas_readline("yas> ", &eof);
+        prompt = get_prompt(prompt);
+        char *line = yas_readline(string_get_cstr(prompt), &eof);
         if (is_nontrivial(line)) {
             size_t line_sz = strlen(line);
             command_t *command = command_create(line, line_sz);
             yas_free(line);
             if (!command) {
-                size_t i, n = command_error_position() + 5;
+                size_t i, n = command_error_position() + string_get_length(prompt);
                 for (i = 0; i < n; ++i) 
                     fprintf(stderr, " ");
                 fprintf(stderr, "^\nsyntax error @ %zu : ", command_error_position());
                 fprintf(stderr, "%s\n", command_error_string());
             } else {
                 /* command_inspect(command, 0); */
-                exec_command(command, tasklist);
+                int ret = exec_command(command, tasklist);
                 command_destroy(command);
+                if (ret == EXEC_EXIT)
+                    break;
             }
         }
     }
+    yas_history_save(string_get_cstr(history));
     return 0;
 }

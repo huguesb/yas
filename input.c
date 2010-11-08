@@ -221,3 +221,31 @@ char* yas_readline(const char *prompt, int *eof) {
     yas_readline_cleanup();
     return s;
 }
+
+/*!
+    \brief Load command history from a file
+    \param filename path of file to load history from
+    \return 0 on success
+    History is only available for readline input backend.
+*/
+int yas_history_load(const char *filename) {
+#ifdef YAS_USE_READLINE
+    return read_history(filename);
+#else
+    return 0;
+#endif
+}
+
+/*!
+    \brief Save command history from a file
+    \param filename path of file to save history to
+    \return 0 on success
+    History is only available for readline input backend.
+*/
+int yas_history_save(const char *filename) {
+#ifdef YAS_USE_READLINE
+    return write_history(filename);
+#else
+    return 0;
+#endif
+}
