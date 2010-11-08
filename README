@@ -3,6 +3,40 @@
 --------------------------------------------------------------------------------
     Copyright (c) 2010 Hugues Bruant & Nicolas Paglieri. All rights reserved
 
+  YetAnotherShell is a bourne-like shell written in C and licensed under GPL3.
+--------------------------------------------------------------------------------
 
-YetAnotherShell is a bourne-like shell written in C and licensed under GPL3.
 
+I. BUILD
+	
+	A qmake project file is provided. Compiling is just as easy as:
+	$ qmake && make
+	
+	
+	
+II. USE
+	
+	$ yas
+	The program then behaves like a standard shell.
+	
+	
+	
+III. DOCUMENTATION
+	
+	The documentation is provided as doxygen (see ./Doc/html/index.html).
+	You can regenerate it in case it has evolved or isn't present by doing :
+	$ doxygen Doxyfile
+	
+	
+	
+IV. POSSIBLE IMPROVEMENTS
+	
+	# error reporting in exec.c
+	# management of user-defined variables
+	# management of special variables ($0..$n $? $0)
+	# complex redirections (>> 2>1 &>)
+	# arithmetic expansion
+	# logic, control flow & functions
+	
+	
+	
