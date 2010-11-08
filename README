@@ -18,6 +18,9 @@ II. USE
 	
 	$ yas
 	The program then behaves like a standard shell.
+	Type "exit" to quit.
+	You can use "liste_ps" or "list_tasks" (same command) to get the 
+	statuses of all the tasks running background.
 	
 	
 	
@@ -25,7 +28,7 @@ III. DOCUMENTATION
 	
 	The documentation is provided as doxygen (see ./Doc/html/index.html).
 	You can regenerate it in case it has evolved or isn't present by doing :
-	$ doxygen Doxyfile
+	$ doxygen
 	
 	
 	
@@ -34,7 +37,8 @@ IV. POSSIBLE IMPROVEMENTS
 	# error reporting in exec.c
 	# management of user-defined variables
 	# management of special variables ($0..$n $? $0)
-	# complex redirections (>> 2>1 &>)
+	# complex redirections like >> 2>1 &>
+	# implementation of && and ||
 	# arithmetic expansion
 	# logic, control flow & functions
 	
