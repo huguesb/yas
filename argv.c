@@ -40,6 +40,9 @@ static void argv_grow(argv_t *argv, size_t n) {
     argv->d = (char**)yas_realloc(argv->d, argv->a * sizeof(char*));
 }
 
+/*!
+    \brief Create a new argv_t
+*/
 argv_t* argv_new() {
     argv_t *argv = (argv_t*)yas_malloc(sizeof(argv_t));
     argv->n = 0;
@@ -49,6 +52,9 @@ argv_t* argv_new() {
     return argv;
 }
 
+/*!
+    \brief Destroy an argv_t
+*/
 void argv_destroy(argv_t *argv) {
     if (!argv)
         return;
@@ -56,14 +62,23 @@ void argv_destroy(argv_t *argv) {
     yas_free(argv);
 }
 
+/*!
+    \return the number of arguments of an argv_t
+*/
 size_t argv_get_argc(argv_t *argv) {
     return argv ? argv->n : 0;
 }
 
+/*!
+    \return the arguments of an argv_t
+*/
 char** argv_get_argv(argv_t *argv) {
     return argv ? argv->d : 0;
 }
 
+/*!
+    \brief Add a string argument to an argv_t
+*/
 int argv_add(argv_t *argv, const char *s) {
     if (!argv || !s)
         return 0;
@@ -74,6 +89,9 @@ int argv_add(argv_t *argv, const char *s) {
     return 0;
 }
 
+/*!
+    \brief Glob-expand and field-split a string and add the resulting string arguments to an argv_t
+*/
 int argv_add_split(argv_t *argv, const char *s) {
     if (!argv || !s)
         return 0;
@@ -107,6 +125,9 @@ int argv_add_split(argv_t *argv, const char *s) {
     return 0;
 }
 
+/*!
+    \brief Print the content of an argv_t for debugging purpose
+*/
 void argv_inspect(argv_t *argv) {
     size_t i;
     for (i = 0; i < argv->n; ++i)

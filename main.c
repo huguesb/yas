@@ -13,7 +13,7 @@
 
 /*!
     \file main.c
-    \brief YAS main() function
+    \brief YAS main function and signal handlers
 */
 
 #include "memory.h"
@@ -92,7 +92,8 @@ static void install_sigchld_handler() {
     }
 }
 
-/*
+/*!
+    \brief Check for trivial command lines
     trivial = empty line, line made of whitspaces, comments
 */
 int is_nontrivial(const char *s) {
@@ -106,6 +107,10 @@ int is_nontrivial(const char *s) {
     return 0;
 }
 
+/*!
+    \internal
+    \brief Build the prompt string
+*/
 string_t* get_prompt(string_t *s) {
     if (!s)
         s = string_new();
@@ -113,14 +118,16 @@ string_t* get_prompt(string_t *s) {
         string_clear(s);
     char *name = get_username();
     char buffer[256];
+    char *pwd = get_pwd();
     gethostname(buffer, 256);
     string_append_char(s, '[');
     string_append_cstr(s, name ? name : "?");
     string_append_char(s, '@');
     string_append_cstr(s, buffer);
     string_append_char(s, ' ');
-    string_append_cstr(s, get_pwd());
+    string_append_cstr(s, pwd);
     string_append_cstr(s, "]$ ");
+    yas_free(pwd);
     return s;
 }
 

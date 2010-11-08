@@ -46,6 +46,10 @@ int exec_setup_redir(command_t *command, exec_context_t *cxt);
 void exec_internal(command_t *command, exec_context_t *cxt);
 void exec_pipechain(command_t *command, exec_context_t *cxt);
 
+/*!
+    \internal
+    \brief Evaluate an argument_t to a string
+*/
 char* eval_argument(argument_t *argument, exec_context_t *cxt) {
     char *val = 0;
     int type = argument_type(argument);
@@ -121,7 +125,10 @@ char* eval_argument(argument_t *argument, exec_context_t *cxt) {
     return val;
 }
 
-
+/*!
+    \internal
+    \brief Evaluate the arguments of a command_t to an argv_t
+*/
 int argv_eval(argv_t *argv, command_t *command, exec_context_t *cxt) {
     const size_t n = command_argc(command);
     argument_t **d = command_argv(command);
@@ -142,6 +149,10 @@ int argv_eval(argv_t *argv, command_t *command, exec_context_t *cxt) {
     return 0;
 }
 
+/*!
+    \internal
+    \brief Setup redirections from a command_t
+*/
 int exec_setup_redir(command_t *command, exec_context_t *cxt) {
     if (command_redir_in(command)) {
         char *s = eval_argument(command_redir_in(command), cxt);
@@ -176,6 +187,10 @@ int exec_setup_redir(command_t *command, exec_context_t *cxt) {
     return 0;
 }
 
+/*!
+    \internal
+    \brief Try to exec one of the builtin commands
+*/
 int exec_builtin(argv_t *argv, exec_context_t *cxt, int *exit) {
     if (exit)
         *exit = 0;
@@ -212,6 +227,10 @@ int exec_builtin(argv_t *argv, exec_context_t *cxt, int *exit) {
     return 1;
 }
 
+/*!
+    \internal
+    \brief Helper to execute a single command
+*/
 void exec_internal(command_t *command, exec_context_t *cxt) {
     argv_t *argv = argv_new();
     if (argv_eval(argv, command, cxt))
@@ -227,6 +246,10 @@ void exec_internal(command_t *command, exec_context_t *cxt) {
     exit(errcode);
 }
 
+/*!
+    \internal
+    \brief Helper to execute a pipechain
+*/
 void exec_pipechain(command_t *command, exec_context_t *cxt) {
     size_t i = 0;
     const size_t n = command_argc(command);
@@ -265,6 +288,11 @@ void exec_pipechain(command_t *command, exec_context_t *cxt) {
             waitpid(pid[i], NULL, 0);
 }
 
+/*!
+    \brief Execute a command_t
+    \param command Command to execute
+    \param tasklist Tasklist to add background tasks to, if any
+*/
 int exec_command(command_t *command, task_list_t *tasklist) {
     exec_context_t cxt;
     cxt.tasklist = tasklist;

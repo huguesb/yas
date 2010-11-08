@@ -24,6 +24,9 @@
 
 static yas_mem_error_handler_t __yas_mem_error_handler = NULL;
 
+/*!
+    \brief Default memory error handler
+*/
 void yas_mem_error() {
     if (__yas_mem_error_handler != NULL) {
         __yas_mem_error_handler();
@@ -35,6 +38,9 @@ void yas_mem_error() {
     exit(1);
 }
 
+/*!
+    \brief Wrapper around malloc
+*/
 void* yas_malloc(size_t sz) {
     void *d = malloc(sz);
     if (d == NULL)
@@ -42,6 +48,9 @@ void* yas_malloc(size_t sz) {
     return d;
 }
 
+/*!
+    \brief Wrapper around realloc
+*/
 void* yas_realloc(void *d, size_t sz) {
     d = realloc(d, sz);
     if (d == NULL)
@@ -49,10 +58,18 @@ void* yas_realloc(void *d, size_t sz) {
     return d;
 }
 
+/*!
+    \brief Wrapper around free
+*/
 void yas_free(void *d) {
     free(d);
 }
 
+/*!
+    \brief Set the memory error handler
+    \param handler error handler
+    If \a handler is NULL yas_mem_error will be called upon allocation error.
+*/
 void yas_set_mem_error_handler(yas_mem_error_handler_t handler) {
     __yas_mem_error_handler = handler;
 }

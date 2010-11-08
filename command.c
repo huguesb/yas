@@ -67,7 +67,10 @@ struct _argument {
     } d;
 };
 
-
+/*!
+    \internal
+    \brief Create a new command_t
+*/
 command_t* command_new() {
     command_t *command = (command_t*)yas_malloc(sizeof(command_t));
     command->flags = 0;
@@ -78,6 +81,10 @@ command_t* command_new() {
     return command;
 }
 
+/*!
+    \internal
+    \brief Add an argument_t to a command_t
+*/
 void command_add_argument(command_t *command, argument_t *argument) {
     command->argv = (argument_t**)yas_realloc(command->argv,
                                               (command->argc + 1) * sizeof(argument_t*));
@@ -85,6 +92,10 @@ void command_add_argument(command_t *command, argument_t *argument) {
     ++command->argc;
 }
 
+/*!
+    \internal
+    \brief Add a command_t to a command_t
+*/
 command_t* command_add_subcommand(command_t *command, command_t *subcommand) {
     if (!command)
         return subcommand;
@@ -101,6 +112,10 @@ command_t* command_add_subcommand(command_t *command, command_t *subcommand) {
     return command;
 }
 
+/*!
+    \internal
+    \brief Create a new argument_t
+*/
 argument_t* argument_new() {
     argument_t *argument = (argument_t*)yas_malloc(sizeof(argument_t));
     argument->type = ARGTYPE_INVALID;
@@ -109,6 +124,10 @@ argument_t* argument_new() {
     return argument;
 }
 
+/*!
+    \internal
+    \brief Add an argument_t to an argument_t
+*/
 argument_t* argument_add_sub(argument_t *parent, argument_t *child) {
     if (!parent)
         return child;
@@ -129,6 +148,10 @@ argument_t* argument_add_sub(argument_t *parent, argument_t *child) {
     return parent;
 }
 
+/*!
+    \internal
+    \brief Create a new argument_t from a string and add it to another argument_t
+*/
 argument_t* argument_add_sub_from_string(argument_t *parent, string_t *s, int quoted) {
     if (string_get_length(s)) {
         argument_t *arg = argument_new();
@@ -144,6 +167,10 @@ argument_t* argument_add_sub_from_string(argument_t *parent, string_t *s, int qu
 
 /******************************************************************************/
 
+/*!
+    \internal
+    \brief Parser context
+*/
 typedef struct {
     const char *data;
     size_t length;
@@ -152,14 +179,26 @@ typedef struct {
     int substitution;
 } parse_context_t;
 
+/*!
+    \internal
+    \brief Test for end of parser input data
+*/
 int parser_at_end(parse_context_t *cxt) {
     return cxt->position >= cxt->length;
 }
 
+/*!
+    \internal
+    \brief Get character at current parser position
+*/
 char parser_char(parse_context_t *cxt) {
     return cxt->data[cxt->position];
 }
 
+/*!
+    \internal
+    \brief Advance current parser position
+*/
 void parser_advance(parse_context_t *cxt, int n) {
     if (n < 0 && cxt->position < (size_t)(-n))
         cxt->position = 0;
@@ -167,10 +206,18 @@ void parser_advance(parse_context_t *cxt, int n) {
         cxt->position += n;
 }
 
+/*!
+    \internal
+    \brief Get character at current parser position and advance current position
+*/
 char parser_consume(parse_context_t *cxt) {
     return cxt->data[cxt->position++];
 }
 
+/*!
+    \internal
+    \brief Skip any whitespaces from current parser position
+*/
 void parser_skip_ws(parse_context_t *cxt) {
     while (cxt->position < cxt->length && isspace(cxt->data[cxt->position]))
         ++cxt->position;
@@ -188,6 +235,10 @@ argument_t* parse_argument(parse_context_t *cxt);
 #define dprintf(fmt, ...)
 #endif
 
+/*!
+    \internal
+    \brief Parse a full command line
+*/
 command_t* parse_command_line(parse_context_t *cxt) {
     dprintf("parse_command_line : %i/%i\n", cxt->position, cxt->length);
     command_t *p = 0;
@@ -205,6 +256,10 @@ command_t* parse_command_line(parse_context_t *cxt) {
     return p;
 }
 
+/*!
+    \internal
+    \brief Parse a single command
+*/
 command_t* parse_command(parse_context_t *cxt) {
     dprintf("parse_command : %i/%i\n", cxt->position, cxt->length);
     command_t *cmd = 0;
@@ -258,6 +313,10 @@ command_t* parse_command(parse_context_t *cxt) {
     return cmd;
 }
 
+/*!
+    \internal
+    \brief Parse a single command argument
+*/
 argument_t* parse_argument(parse_context_t *cxt) {
     dprintf("parse_argument : %i/%i\n", cxt->position, cxt->length);
     string_t *tmp = string_new();
@@ -346,6 +405,12 @@ argument_t* parse_argument(parse_context_t *cxt) {
 static size_t _command_error_position = 0;
 static string_t *_command_error_string = 0;
 
+/*!
+    \brief Parse a textual representation of a command line into a command_t
+    \param str input data
+    \param sz size of input data
+    \return parsed representation of command line, 0 on parse error
+*/
 command_t* command_create(const char *str, size_t sz) {
     _command_error_position = (size_t)-1;
     if (_command_error_string)
@@ -385,14 +450,23 @@ command_t* command_create(const char *str, size_t sz) {
     return cmd;
 }
 
+/*!
+    \return the position of the last error encountered by command_create, if any
+*/
 size_t command_error_position() {
     return _command_error_position;
 }
 
+/*!
+    \return the error string of the last error encountered by command_create, if any
+*/
 const char* command_error_string() {
     return string_get_cstr(_command_error_string);
 }
 
+/*!
+    \brief Destroy a command_t
+*/
 void command_destroy(command_t *command) {
     if (!command)
         return;
@@ -403,6 +477,9 @@ void command_destroy(command_t *command) {
     yas_free(command);
 }
 
+/*!
+    \brief Print the contents of a command_t for debugging purpose
+*/
 void command_inspect(command_t *command, size_t indent) {
     if (!command)
         return;
@@ -423,30 +500,53 @@ void command_inspect(command_t *command, size_t indent) {
     indent_printf(indent, "}\n");
 }
 
+/*!
+    \return the argument_t corresponding to input redirection, if any
+*/
 argument_t* command_redir_in(command_t *command) {
     return command ? command->in : 0;
 }
 
+/*!
+    \return the argument_t corresponding to output redirection, if any
+*/
 argument_t* command_redir_out(command_t *command) {
     return command ? command->out : 0;
 }
 
+/*!
+    \return the number of argument of the command
+    \note Redirection ares not taken into account
+*/
 int command_argc(command_t *command) {
     return command ? command->argc : 0;
 }
 
+/*!
+    \return the arguments of the command
+*/
 argument_t** command_argv(command_t *command) {
     return command ? command->argv : 0;
 }
 
+/*!
+    \return whether the command is a pipechain
+    If a command is a pipechain, all its arguments will be commands
+*/
 int command_is_pipechain(command_t *command) {
     return command ? command->flags & COMMAND_IS_PIPECHAIN : 0;
 }
 
+/*!
+    \return whether the command is supposed to be executed as a background task
+*/
 int command_is_background(command_t *command) {
     return command ? command->flags & COMMAND_IS_BACKGROUND : 0;
 }
 
+/*!
+    \brief Destroy an argument_t
+*/
 void argument_destroy(argument_t *argument) {
     int type = argument->type & ARGTYPE_TYPE_MASK;
     if (type == ARGTYPE_COMMAND) {
@@ -462,6 +562,9 @@ void argument_destroy(argument_t *argument) {
     yas_free(argument);
 }
 
+/*!
+    \brief Print the contents of an argument_t for debugging purpose
+*/
 void argument_inspect(argument_t *argument, size_t indent) {
     if (!argument)
         return;
@@ -500,26 +603,44 @@ void argument_inspect(argument_t *argument, size_t indent) {
     }
 }
 
+/*!
+    \return the type of the argument
+*/
 int argument_type(argument_t *argument) {
     return argument ? argument->type & ARGTYPE_TYPE_MASK : ARGTYPE_INVALID;
 }
 
+/*!
+    \return the argument flags
+*/
 int argument_flags(argument_t *argument) {
     return argument ? argument->type & ARGTYPE_FLAGS_MASK : 0;
 }
 
+/*!
+    \return the content of the argument as a string
+*/
 char* argument_get_string(argument_t *argument) {
     return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_STRING ? argument->d.str : 0;
 }
 
+/*!
+    \return the content of the argument as a variable name
+*/
 char* argument_get_variable(argument_t *argument) {
     return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_VARIABLE ? argument->d.str : 0;
 }
 
+/*!
+    \return the content of the argument as a command_t
+*/
 command_t* argument_get_command(argument_t *argument) {
     return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_COMMAND ? argument->d.cmd : 0;
 }
 
+/*!
+    \return the content of the argument as a list of subarguments
+*/
 argument_t** argument_get_arguments(argument_t *argument) {
     return argument && (argument->type & ARGTYPE_TYPE_MASK) == ARGTYPE_CAT ? argument->d.sub : 0;
 }

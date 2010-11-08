@@ -41,6 +41,9 @@ enum task_status {
     TASK_STATUS_ERROR
 };
 
+/*!
+    \brief Create a new task_t
+*/
 task_t* task_new() {
     task_t *task = (task_t*)yas_malloc(sizeof(task_t));
     task->pid = 0;
@@ -51,6 +54,9 @@ task_t* task_new() {
     return task;
 }
 
+/*!
+    \brief Destroy a task_t
+*/
 void task_destroy(task_t *task) {
     if (!task)
         return;
@@ -58,24 +64,39 @@ void task_destroy(task_t *task) {
     yas_free(task);
 }
 
+/*!
+    \return the PID of a task_t
+*/
 pid_t task_get_pid(task_t *task) {
     return task ? task->pid : 0;
 }
 
+/*!
+    \brief Set the PID of a task_t
+*/
 void task_set_pid(task_t *task, pid_t pid) {
     if (task)
         task->pid = pid;
 }
 
+/*!
+    \return the argv_t of a task_t
+*/
 argv_t* task_get_argv(task_t *task) {
     return task ? task->argv : 0;
 }
 
+/*!
+    \brief Set the argv_t of a task_t
+*/
 void task_set_argv(task_t *task, argv_t *argv) {
     if (task)
         task->argv = argv;
 }
 
+/*!
+    \return the elapsed time, in seconds, from the start of a task_t
+*/
 long long task_get_elapsed_seconds(task_t *task) {
     struct timeval current;
     gettimeofday(&current, NULL);
@@ -84,6 +105,9 @@ long long task_get_elapsed_seconds(task_t *task) {
     return diff;
 }
 
+/*!
+    \return the elapsed time, in milliseconds, from the start of a task_t
+*/
 long long task_get_elapsed_millis(task_t *task) {
     struct timeval current;
     gettimeofday(&current, NULL);
@@ -93,6 +117,9 @@ long long task_get_elapsed_millis(task_t *task) {
     return diff;
 }
 
+/*!
+    \return the elapsed time, in microseconds, from the start of a task_t
+*/
 long long task_get_elapsed_micros(task_t *task) {
     struct timeval current;
     gettimeofday(&current, NULL);
@@ -102,6 +129,9 @@ long long task_get_elapsed_micros(task_t *task) {
     return diff;
 }
 
+/*!
+    \brief Print the content of a task_t for debugging purpose
+*/
 void task_inspect(task_t *task) {
     if (!task)
         return;
@@ -160,6 +190,9 @@ static void task_list_grow(task_list_t *list, size_t n) {
     list->d = (task_t**)yas_realloc(list->d, list->a * sizeof(task_t*));
 }
 
+/*!
+    \brief Create a new task_list_t
+*/
 task_list_t* task_list_new() {
     task_list_t *list = (task_list_t*)yas_malloc(sizeof(task_list_t));
     list->n = 0;
@@ -168,6 +201,9 @@ task_list_t* task_list_new() {
     return list;
 }
 
+/*!
+    \brief Destroy a task_list_t
+*/
 void task_list_destroy(task_list_t *list) {
     if (!list)
         return;
@@ -178,14 +214,23 @@ void task_list_destroy(task_list_t *list) {
     yas_free(list);
 }
 
+/*!
+    \return the size of a task_list_t
+*/
 size_t task_list_get_size(task_list_t *list) {
     return list ? list->n : 0;
 }
 
+/*!
+    \return the tasks of a task_list_t
+*/
 task_t* task_list_get_task(task_list_t *list, size_t index) {
     return list ? list->d[index] : 0;
 }
 
+/*!
+    \brief Add a task_t to a task_list_t
+*/
 void task_list_add(task_list_t *list, task_t *task) {
     if (!list || !task)
         return;
@@ -193,6 +238,10 @@ void task_list_add(task_list_t *list, task_t *task) {
     list->d[list->n++] = task;
 }
 
+/*!
+    \brief Remove a task_t from a task_list_t
+    \note The task is *not* destroyed
+*/
 void task_list_remove(task_list_t *list, size_t index) {
     if (!list || index >= list->n)
         return;

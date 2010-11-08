@@ -32,6 +32,9 @@
 #include <unistd.h>
 #include <sys/resource.h>
 
+/*!
+    \return The number of available CPU cores
+*/
 int get_cpu_count() {
     FILE *f = popen("cat /proc/cpuinfo | grep processor | wc -l", "r");
     char buffer[16];
@@ -40,20 +43,30 @@ int get_cpu_count() {
     return size ? atoi(buffer) : 0;
 }
 
+/*!
+    \return the home dir of the current user, 0 on error
+    The caller is responsible for freeing the data
+*/
 char* get_homedir() {
     glob_t globs;
     int err = glob("~/",
                    GLOB_TILDE_CHECK | GLOB_ERR,
                    NULL, &globs);
+    char *homedir = 0;
     if (err) {
         return 0;
-    } else if (globs.gl_pathc != 1) {
-        globfree(&globs);
-        return 0;
+    } else if (globs.gl_pathc == 1) {
+        homedir = yas_malloc(strlen(*globs.gl_pathv) + 1);
+        strcpy(homedir, *globs.gl_pathv);
     }
-    return *globs.gl_pathv;
+    globfree(&globs);
+    return homedir;
 }
 
+/*!
+    \return the current working directory
+    The caller is responsible for freeing the data
+*/
 char* get_pwd() {
     char *pwd = 0;
     char *buffer = 0;
@@ -68,6 +81,10 @@ char* get_pwd() {
     return pwd;
 }
 
+/*!
+    \return the current username
+    \return the data is statically allocated
+*/
 char* get_username() {
     struct passwd *pw = getpwuid(geteuid());
     return pw ? pw->pw_name : 0;
