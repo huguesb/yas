@@ -12,6 +12,21 @@ I. BUILD
 	A qmake project file is provided. Compiling is just as easy as:
 	$ qmake && make
 	
+	A default Makefile is provided in case qmake is not available.
+	
+	By default YAS uses readline as its input backend. If readline is not
+	available it can be built with a simplified input backend. To disable
+	the readline backend you can either :
+		
+		# comment out / remove the line "CONFIG += readline" from yas.prog
+		
+		# remove "-DYAS_USE_READLINE" and "-lreadline -lncurses" from the
+		default Makefile
+	
+	A full rebuild is needed for the configuration change to take effect :
+	$ make clean && qmake && make
+	or, if using the default Makefile :
+	$ make clean && make
 	
 	
 II. USE
@@ -19,8 +34,8 @@ II. USE
 	$ yas
 	The program then behaves like a standard shell.
 	Type "exit" to quit.
-	You can use "liste_ps" or "list_tasks" (same command) to get the 
-	statuses of all the tasks running background.
+	You can use "liste_ps" or "list_tasks" (same command) to get the  statuses
+	of all the tasks running background.
 	
 	
 	
