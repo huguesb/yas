@@ -1,5 +1,6 @@
  * documentation (README + doxy)
  * better error reporting in exec.c
+ * completion of executables in $PATH
  * tests
  * check background task CPU utilization (looks kinda wrong...)
 
